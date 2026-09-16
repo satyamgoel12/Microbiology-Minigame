@@ -32,14 +32,31 @@ Body colour teaches the Gram stain in passing: **violet = Gram-positive**
 the violet and takes the pink counterstain).
 
 **Lives.** You start with 5 plates. Slashing a helpful microbe, or letting a
-harmful one fall off the bottom, costs **half a plate** — so it takes ten
-mistakes to end a run, not five. Every **5 harmful microbes in a row with no
-mistakes gives half a plate back** (or +50 if you are already full). Score, top
-combo and best streak are kept in `localStorage`.
+harmful one fall off the bottom, costs **one plate**. Every **5 harmful microbes
+in a row with no mistakes gives a plate back** (or +50 points if you are already
+full). Score, top combo and best streak are kept in `localStorage`.
 
-**Pace.** Rounds start deliberately slow — one microbe at a time on a long, lazy
-arc — and build over about two and a half minutes to six on screen at once.
-Microbes spawn into four fixed lanes so they never arrive as one unhittable clump.
+**Pace.** A round opens gently — one microbe at a time on a long, lazy arc — for
+about five seconds, then climbs steadily to full speed by roughly forty seconds,
+with up to seven microbes in the air at once. Microbes spawn into four fixed
+lanes so they never arrive as one unhittable clump.
+
+**Pause and sound.** The ❙❙ button in the HUD freezes the round; switching tabs or
+apps pauses it for you, so nobody loses a life to a phone notification. The ♪
+button — on the start page, in the HUD and on the pause screen — turns *all*
+sound on or off: the background music and the slice effects together. The choice
+is remembered between visits.
+
+**Music.** The loop is *Korobeiniki*, the 19th-century Russian folk tune everyone
+knows from Tetris, synthesised note by note in Web Audio as a soft piano-ish
+melody with a bass line. There is no audio file, so it adds nothing to the
+download and works offline.
+
+**The fun facts page.** When a round ends you can open **Microbial Facts & Health
+Guide** — eight curated cards on fibre and the gut, finishing an antibiotic
+course, soap versus alcohol, live fermented foods, the hygiene hypothesis, phage
+therapy, flossing and the overnight fasting window. It is only reachable from the
+end of a round, which is the point: play first, read after.
 
 ## Run it locally
 
@@ -77,7 +94,7 @@ plays **fully offline** — useful when the venue Wi-Fi gives out mid-event.
 ## Files
 
 ```
-index.html             the whole game — markup, CSS and JS in one file (~50 KB)
+index.html             the whole game — markup, CSS and JS in one file (~64 KB)
 sw.js                  service worker: precache + offline-first fetch
 manifest.webmanifest   PWA manifest (fullscreen, portrait, icons)
 icon-192.png           home-screen icon
@@ -85,7 +102,7 @@ icon-512.png           home-screen / maskable icon
 CLAUDE.md              working rules for anyone (or any agent) editing this
 ```
 
-Total payload ≈ 90 KB, nothing fetched from a CDN.
+Total payload ≈ 105 KB, nothing fetched from a CDN.
 
 ## Tweaking it for your event
 
@@ -95,11 +112,14 @@ Everything worth changing sits near the top of the script in `index.html`:
   (`path` / `good` / `bomb` / `phage`), `gram` (`+` or `-`), a `shape` from the
   drawing routines in `drawBody`, points, and a `facts` array (one is picked at
   random per slice). Keep the list short — the crowd is mostly non-biology.
-- **`TIPS`** — the end-of-round advice. This is the actual takeaway of the game.
+- **`TIPS`** — the one-line advice on the end-of-round screen.
+- **`FACTS`** — the cards on the fun facts page (icon, badge, title, body).
+- **`MELODY` / `BASS` / `EIGHTH`** — the music. `EIGHTH` sets the tempo; the two
+  arrays are `[frequency, length in eighth notes]` pairs.
 - **`difficulty()`**, **`spawnWave()`**, **`gravityNow()`** — pace, how many
   microbes share the screen, and how fast they fall.
 - **`LANES`** — the horizontal spawn lanes that stop microbes clumping.
-- **`MAX_HALF`** — lives, counted in half-plates (10 halves = 5 plates).
+- **`MAX_LIVES`** — how many plates a player starts with.
 - **`STAIN`** — the crystal violet / safranin palette.
 
 ## Implementation notes
@@ -118,6 +138,11 @@ Everything worth changing sits near the top of the script in `index.html`:
   invasive tubes, an icosahedral phage. Slices split the body into two clipped
   halves that fly apart.
 - All sound is synthesised through Web Audio on first touch — no audio files.
+  The music runs on a lookahead scheduler (notes queued 0.35 s ahead on a 60 ms
+  timer) so it stays in time without competing with the render loop, and it stops
+  cleanly on pause, game over and mute.
+- The round pauses itself on `visibilitychange` and on window blur, so a
+  backgrounded tab can never cost a life.
 - `touch-action:none`, `overscroll-behavior:none` and prevented gesture events
   stop scroll and zoom on mobile; the layout respects iOS safe-area insets and
   fits a 320×568 screen.

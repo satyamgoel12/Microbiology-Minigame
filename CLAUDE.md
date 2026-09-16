@@ -24,8 +24,13 @@
   tip instead.
 - Mobile first: `touch-action:none`, safe-area insets, capped devicePixelRatio,
   object pools, 60 fps on a mid-range Android.
-- Difficulty starts slow on purpose. First-timers should survive long enough to
-  understand the red-glow / green-glow rule before the pace picks up.
+- Difficulty opens gently for about five seconds so first-timers can read the
+  red-glow / green-glow rule, then climbs to full speed by roughly forty seconds.
+  Gentle intro, not a slow game.
+- The fun facts page is Satyam's own curated content. Edit wording only if he
+  asks; it is reachable only after a round ends, never from the start page.
+- All audio is synthesised in code (effects and the Korobeiniki music loop).
+  Never add an audio file — it would break offline size and the no-assets rule.
 
 ## Verifying a change
 

@@ -41,18 +41,29 @@
        display:flex;flex-direction:row;align-items:flex-start;justify-content:space-between;
        gap:10px;opacity:0;transition:opacity .25s}
   #hud.on{opacity:1}
+  #hud:not(.on) .cbtn{pointer-events:none}
+  #hud.frozen #ctrls{visibility:hidden}   /* the pause screen carries its own buttons */
   #score{font-size:30px;font-weight:800;line-height:1;letter-spacing:-.5px;text-shadow:0 2px 12px rgba(0,0,0,.7)}
   #best{font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:.09em;text-transform:uppercase}
   #streak{font-size:11px;color:var(--green);margin-top:3px;letter-spacing:.06em;min-height:13px}
-  #lives{display:flex;gap:5px;margin-right:36px}
+  #right{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+  #lives{display:flex;gap:5px}
   .dish{width:22px;height:22px;border-radius:50%;border:2px solid rgba(61,220,132,.8);
-        position:relative;overflow:hidden;transition:border-color .2s,opacity .2s}
-  .dish i{position:absolute;inset:0;display:block;
-          background:radial-gradient(circle at 34% 30%,rgba(61,220,132,.55),rgba(61,220,132,.16) 70%);
-          transition:clip-path .18s}
-  .dish.half i{clip-path:inset(0 50% 0 0)}
-  .dish.gone{opacity:.28;border-color:rgba(255,77,94,.6)}
-  .dish.gone i{clip-path:inset(0 100% 0 0)}
+        background:radial-gradient(circle at 34% 30%,rgba(61,220,132,.5),rgba(61,220,132,.14) 70%);
+        transition:border-color .2s,opacity .2s,transform .2s}
+  .dish.gone{opacity:.25;border-color:rgba(255,77,94,.6);background:none;transform:scale(.82)}
+  /* round HUD buttons: pause and music */
+  #ctrls{display:flex;gap:8px}
+  .cbtn{pointer-events:auto;width:38px;height:38px;padding:0;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:16px;font-weight:700;color:var(--ink);
+        background:rgba(8,22,30,.75);border:1px solid rgba(255,255,255,.16);
+        box-shadow:none;cursor:pointer;position:relative}
+  .cbtn:active{transform:scale(.93)}
+  .cbtn.off{color:var(--dim)}
+  .cbtn.off::after{content:'';position:absolute;left:7px;right:7px;top:50%;height:2px;
+                   background:var(--red);transform:rotate(-38deg);border-radius:2px}
+  #mmusic, #pmusic{position:absolute;top:calc(var(--safeT) + 12px);right:calc(var(--safeR) + 14px)}
 
   /* ---------- fact ticker + signature ---------- */
   #fact{margin-top:auto;margin-bottom:calc(var(--safeB) + 34px);align-self:center;
@@ -101,7 +112,9 @@
   button:active{transform:translateY(2px) scale(.98)}
   button.ghost{background:none;color:var(--dim);box-shadow:none;font-size:13px;padding:6px 16px;
                font-weight:600;text-decoration:underline;text-underline-offset:3px}
-  .made{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  #paused #quit{margin-bottom:auto}
+  .made{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);
+        font-weight:700;margin-bottom:auto}
   .tag{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim)}
   #gscore{font-size:64px;font-weight:900;line-height:1;letter-spacing:-2px}
   #greason{font-size:15px;font-weight:700;max-width:min(92vw,400px)}
@@ -112,10 +125,42 @@
        padding:13px 16px;max-width:min(92vw,400px);font-size:14px;line-height:1.55;text-align:left}
   #tip h3{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--green);
           margin-bottom:6px;font-weight:800}
-  #mute{position:absolute;top:calc(var(--safeT) + 8px);right:calc(var(--safeR) + 10px);
-        pointer-events:auto;background:none;box-shadow:none;color:var(--dim);font-size:20px;
-        padding:10px;border-radius:12px}
   .hide{display:none!important}
+
+  /* ---------- fun facts page ---------- */
+  #facts{justify-content:flex-start;gap:0;padding:calc(var(--safeT) + 16px) 14px calc(var(--safeB) + 14px);
+         overflow:hidden}
+  #facts>*:first-child{margin-top:0}
+  #facts>*:last-child{margin-bottom:0}
+  .fhead{font-size:clamp(15px,4.4vw,20px);font-weight:900;letter-spacing:-.2px;line-height:1.2;
+         background:linear-gradient(95deg,var(--violet),var(--pink));
+         -webkit-background-clip:text;background-clip:text;color:transparent}
+  .pill{margin-top:7px;display:inline-block;font-size:11px;padding:4px 13px;border-radius:999px;
+        background:rgba(139,92,246,.16);border:1px solid rgba(139,92,246,.45);color:var(--dim)}
+  .pill b{color:#fff;font-weight:800}
+  .fsub{margin-top:7px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+        color:var(--dim);font-weight:700;line-height:1.5}
+  #flist{flex:1;min-height:0;width:100%;max-width:560px;margin:13px 0;overflow-y:auto;
+         -webkit-overflow-scrolling:touch;text-align:left;
+         display:flex;flex-direction:column;gap:11px;padding-right:4px}
+  .fcard{background:rgba(8,22,30,.85);border:1px solid rgba(255,255,255,.1);border-radius:15px;
+         padding:13px 15px}
+  .ftop{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px}
+  .fcard h4{font-size:13.5px;font-weight:800;line-height:1.3;flex:1}
+  .fcard p{font-size:12.5px;line-height:1.55;color:#cfe2ea}
+  .fcard p b{color:#fff}
+  .fcard em{font-style:italic;color:var(--violet)}
+  .badge{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+         padding:4px 9px;border-radius:999px;white-space:nowrap;flex:0 0 auto;margin-top:2px}
+  .b-v{background:rgba(139,92,246,.18);border:1px solid rgba(139,92,246,.5);color:#c4b0ff}
+  .b-p{background:rgba(244,100,143,.16);border:1px solid rgba(244,100,143,.5);color:#ffb3c8}
+  .b-g{background:rgba(61,220,132,.15);border:1px solid rgba(61,220,132,.5);color:#8ff0b6}
+  .b-r{background:rgba(255,77,94,.15);border:1px solid rgba(255,77,94,.5);color:#ffa3ab}
+  .fnote{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:10px;max-width:min(92vw,520px)}
+  #fhome{font-size:15px;padding:13px 24px;letter-spacing:.03em}
+  @media (max-height:660px), (max-width:340px){
+    .fcard h4{font-size:13px} .fcard p{font-size:12px} #flist{gap:9px}
+  }
   @media (max-height:660px), (max-width:340px){
     h1{font-size:clamp(34px,12vw,52px)}
     .hook{font-size:14px} .keys{font-size:12.5px} .chip{width:26px;height:26px}
@@ -134,7 +179,13 @@
     <div id="best">Best 0</div>
     <div id="streak"></div>
   </div>
-  <div id="lives"></div>
+  <div id="right">
+    <div id="lives"></div>
+    <div id="ctrls">
+      <button class="cbtn" id="bpause" aria-label="Pause">&#10074;&#10074;</button>
+      <button class="cbtn" id="bmusic" aria-label="Music on or off">&#9835;</button>
+    </div>
+  </div>
 </div>
 <div class="layer"><div id="fact"></div></div>
 <div id="sig">Made by Satyam</div>
@@ -149,6 +200,7 @@
   </div>
   <button id="play">PLAY</button>
   <div class="made">Made by Satyam</div>
+  <button class="cbtn" id="mmusic" aria-label="Music on or off">&#9835;</button>
 </div>
 
 <div class="screen" id="over">
@@ -163,10 +215,25 @@
   </div>
   <div id="tip"><h3>Take this home</h3><span id="tiptext"></span></div>
   <button id="again">PLAY AGAIN</button>
-  <button class="ghost" id="tomenu">back to start</button>
+  <button class="ghost" id="tofacts">see the fun facts &rarr;</button>
 </div>
 
-<button id="mute" class="hide" aria-label="Toggle sound">🔊</button>
+<div class="screen" id="paused">
+  <div class="tag">Paused</div>
+  <div class="hook">Take your time.</div>
+  <button id="resume">RESUME</button>
+  <button class="ghost" id="quit">quit to start page</button>
+  <button class="cbtn" id="pmusic" aria-label="Music on or off">&#9835;</button>
+</div>
+
+<div class="screen" id="facts">
+  <div class="fhead">&#128300; MICROBIAL FACTS &amp; HEALTH GUIDE</div>
+  <div class="pill">Curated by <b>Satyam Goel</b></div>
+  <div class="fsub">Vital microbiology facts for good flora &amp; everyday immunity</div>
+  <div id="flist"></div>
+  <div class="fnote">The background music was recorded by me on piano. &#127925;</div>
+  <button id="fhome">&#127968; RETURN TO START PAGE</button>
+</div>
 <script>
 (function(){
 'use strict';
@@ -259,6 +326,34 @@ var TIPS = [
   'Never share leftover antibiotics with a friend or family member — the wrong drug breeds resistance and does not cure them.'
 ];
 
+/* The end-of-game reading page. Curated by Satyam Goel. */
+var FACTS = [
+  { icon:'\uD83E\uDDEB', badge:'Prebiotics', bc:'b-g',
+    title:'Eat Diverse Dietary Fiber to Cultivate Good Flora',
+    text:'Human digestive enzymes cannot break down soluble prebiotic fibers (inulin, resistant starch, pectin). Your beneficial colon bacteria (<em>Bifidobacteria</em>, <em>Lactobacillus</em>, <em>Faecalibacterium</em>) ferment these fibers into <b>Short-Chain Fatty Acids (SCFAs)</b>, primarily <b>butyrate</b>. Butyrate powers 70% of colon epithelial cells, seals your gut barrier to stop "leaky gut," and signals the brain via the vagus nerve to calm systemic inflammation. Aim for <b>30+ diverse plant varieties</b> every week.' },
+  { icon:'\uD83D\uDC8A', badge:'Superbug shield', bc:'b-r',
+    title:'Always Complete Your Full Antibiotic Course',
+    text:'When you feel better after just 2 or 3 days of antibiotics, the medication has only wiped out the weakest bacteria. The toughest, partially resistant mutants are still alive. If you halt your course early, these survivors multiply, exchange plasmid resistance genes, and evolve into <b>MRSA and other superbug strains</b>. Finishing the prescription your doctor wrote leaves no resistant survivors behind.' },
+  { icon:'\uD83E\uDDFC', badge:'Hygiene rule', bc:'b-p',
+    title:'Soap &amp; Running Water vs. 70% Alcohol Sanitizer',
+    text:'70% alcohol hand rub is excellent at inactivating lipid-enveloped viruses (influenza, SARS-CoV-2) and ordinary bacteria by denaturing their proteins. However, tough bacterial endospores (such as <em>Clostridioides difficile</em>) and non-enveloped stomach viruses (like <em>Norovirus</em>) are <b>completely unharmed by alcohol</b>. Only mechanical handwashing with soap and running water physically lifts spores off your skin and flushes them down the drain.' },
+  { icon:'\uD83E\uDD5B', badge:'Probiotics', bc:'b-g',
+    title:'Live Fermented Foods vs. Vinegar Pickling',
+    text:'Authentic fermented foods (raw kefir, unpasteurized sauerkraut, traditional kimchi, curd, tempeh and miso) contain billions of living lactic acid bacteria (<em>Lactobacillus plantarum</em>, <em>L. acidophilus</em>). Standard shelf-stable supermarket pickles are pasteurized in heated vinegar, which kills every live culture. Look for refrigerated jars marked <b>"unpasteurized"</b> or <b>"contains live active cultures"</b>.' },
+  { icon:'\uD83C\uDF3F', badge:'Immune training', bc:'b-g',
+    title:"The Hygiene Hypothesis: Don't Over-Sterilize",
+    text:'Excessive bleaching and sterilizing of an ordinary home deprives a developing immune system of crucial training. Early childhood contact with benign soil microbes (<em>Mycobacterium vaccae</em>), household pets and the outdoors trains <b>regulatory T-cells</b>, drastically lowering rates of asthma, severe allergies and autoimmune disorders. Keep hands clean, but let children play outside.' },
+  { icon:'\u26A1', badge:'Phage therapy', bc:'b-v',
+    title:'Bacteriophages: The Precision Superbug Hunters',
+    text:'Bacteriophages are ancient specialized viruses that prey exclusively on bacteria. Unlike broad-spectrum antibiotics that flatten your entire microbiome, a therapeutic phage can be aimed at one specific hospital pathogen (multidrug-resistant <em>Pseudomonas</em>, or <em>MRSA</em>) with <b>zero toxicity</b> to human cells or to your friendly gut flora.' },
+  { icon:'\uD83E\uDDB7', badge:'Oral systemic', bc:'b-p',
+    title:'Flossing Protects Your Heart &amp; Arteries',
+    text:'Over 700 bacterial species live in your mouth. Harmful oral anaerobes like <em>Porphyromonas gingivalis</em> from bleeding gums migrate straight into the bloodstream through micro-abrasions, stick to arterial walls and accelerate atherosclerosis. Daily interdental flossing protects your heart as much as it protects your teeth.' },
+  { icon:'\uD83C\uDF19', badge:'Gut lining', bc:'b-v',
+    title:'The Circadian Microbiome Fasting Window',
+    text:'Your gut bacteria run on their own circadian clock. Keep a <b>12 to 14 hour overnight fasting window</b> with no late-night snacking and mucosal specialists like <em>Akkermansia muciniphila</em> stimulate intestinal cell renewal, rebuilding a fresh, thick protective mucus lining before breakfast.' }
+];
+
 /* ----------------------------------------------------------------------
    Audio — synthesised, no files.
    ---------------------------------------------------------------------- */
@@ -312,6 +407,95 @@ var SFX = {
   start:  function(){ tone(330,660,0.18,'triangle',0.2); tone(495,990,0.22,'sine',0.12,0.09); },
   over:   function(){ tone(300,70,0.9,'sawtooth',0.24); }
 };
+
+/* ----------------------------------------------------------------------
+   Background music. Korobeiniki — the 19th-century Russian folk tune that
+   everyone knows from Tetris — synthesised note by note as a soft
+   piano-ish loop. No audio file, so it costs nothing to download.
+   Scheduled with a lookahead clock so it never fights the render loop.
+   ---------------------------------------------------------------------- */
+var NOTE = { R:0,
+  C3:130.81, D3:146.83, E3:164.81, G3:196.00, A3:220.00, B3:246.94,
+  E2:82.41, A2:110.00, B2:123.47, D2:73.42, C2:65.41, G2:98.00,
+  A4:440.00, B4:493.88, C5:523.25, D5:587.33, E5:659.25, F5:698.46,
+  G5:783.99, A5:880.00, Gs4:415.30, Gs5:830.61 };
+/* [frequency, length in eighth notes] */
+var MELODY = [
+  [NOTE.E5,2],[NOTE.B4,1],[NOTE.C5,1],[NOTE.D5,2],[NOTE.C5,1],[NOTE.B4,1],
+  [NOTE.A4,2],[NOTE.A4,1],[NOTE.C5,1],[NOTE.E5,2],[NOTE.D5,1],[NOTE.C5,1],
+  [NOTE.B4,3],[NOTE.C5,1],[NOTE.D5,2],[NOTE.E5,2],
+  [NOTE.C5,2],[NOTE.A4,2],[NOTE.A4,2],[NOTE.R,2],
+  [NOTE.R,1],[NOTE.D5,2],[NOTE.F5,1],[NOTE.A5,2],[NOTE.G5,1],[NOTE.F5,1],
+  [NOTE.E5,3],[NOTE.C5,1],[NOTE.E5,2],[NOTE.D5,2],
+  [NOTE.C5,2],[NOTE.B4,2],[NOTE.B4,1],[NOTE.C5,1],[NOTE.D5,2],
+  [NOTE.E5,2],[NOTE.C5,2],[NOTE.A4,2],[NOTE.A4,2],
+  [NOTE.E5,4],[NOTE.C5,4],[NOTE.D5,4],[NOTE.B4,4],
+  [NOTE.C5,4],[NOTE.A4,4],[NOTE.Gs4,4],[NOTE.B4,4],
+  [NOTE.E5,4],[NOTE.C5,4],[NOTE.D5,4],[NOTE.B4,4],
+  [NOTE.C5,2],[NOTE.E5,2],[NOTE.A5,4],[NOTE.Gs5,8]
+];
+/* one root note per half bar */
+var BASS = [NOTE.E2,NOTE.E3, NOTE.A2,NOTE.A3, NOTE.G2,NOTE.G3, NOTE.E2,NOTE.E3,
+            NOTE.D2,NOTE.D3, NOTE.C2,NOTE.C3, NOTE.B2,NOTE.B3, NOTE.E2,NOTE.E3,
+            NOTE.A2,NOTE.A3, NOTE.E2,NOTE.E3, NOTE.C2,NOTE.C3, NOTE.B2,NOTE.B3,
+            NOTE.A2,NOTE.A3, NOTE.E2,NOTE.E3, NOTE.C2,NOTE.C3, NOTE.B2,NOTE.B3];
+var EIGHTH = 60 / 142 / 2;                 // 142 bpm
+var MUS = { playing:false, timer:null, gain:null, mStep:0, mTime:0, bStep:0, bTime:0 };
+
+function musVoice(f, t, dur, vol, type, detune){
+  if (!f) return;
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f, t);
+  if (detune) o.detune.setValueAtTime(detune, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.02);      // soft hammer
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);    // long piano decay
+  o.connect(g); g.connect(MUS.gain);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function musSchedule(){
+  if (!AC || !MUS.playing) return;
+  var horizon = AC.currentTime + 0.35;
+  while (MUS.mTime < horizon){
+    var ev = MELODY[MUS.mStep % MELODY.length];
+    var dur = ev[1] * EIGHTH;
+    musVoice(ev[0], MUS.mTime, dur * 1.25, 0.10, 'triangle', 0);
+    musVoice(ev[0], MUS.mTime, dur * 0.8,  0.03, 'sine', 6);
+    MUS.mTime += dur; MUS.mStep++;
+  }
+  while (MUS.bTime < horizon){
+    musVoice(BASS[MUS.bStep % BASS.length], MUS.bTime, EIGHTH * 3.2, 0.075, 'sine', 0);
+    MUS.bTime += EIGHTH * 4; MUS.bStep++;
+  }
+}
+function musicStart(){
+  audioInit();
+  if (!AC || muted || MUS.playing) return;
+  if (!MUS.gain){ MUS.gain = AC.createGain(); MUS.gain.gain.value = 0.5; MUS.gain.connect(master); }
+  try {
+    MUS.gain.gain.cancelScheduledValues(AC.currentTime);
+    MUS.gain.gain.setValueAtTime(0.5, AC.currentTime);
+  } catch(e){}
+  MUS.playing = true;
+  MUS.mStep = MUS.bStep = 0;
+  MUS.mTime = MUS.bTime = AC.currentTime + 0.12;
+  musSchedule();
+  MUS.timer = setInterval(musSchedule, 60);
+}
+function musicStop(){
+  MUS.playing = false;
+  if (MUS.timer){ clearInterval(MUS.timer); MUS.timer = null; }
+  if (MUS.gain){                                   // duck the tail instead of clicking
+    try {
+      MUS.gain.gain.cancelScheduledValues(AC.currentTime);
+      MUS.gain.gain.setValueAtTime(MUS.gain.gain.value, AC.currentTime);
+      MUS.gain.gain.linearRampToValueAtTime(0.0001, AC.currentTime + 0.12);
+      var g = MUS.gain;
+      setTimeout(function(){ try { g.gain.setValueAtTime(0.5, AC.currentTime); } catch(e){} }, 300);
+    } catch(e){}
+  }
+}
 
 /* ---------------------------------------------------------------------- */
 function Pool(factory){ this.live=[]; this.free=[]; this.factory=factory; }
@@ -531,9 +715,14 @@ var elScore  = document.getElementById('score'),
     elSig    = document.getElementById('sig'),
     scMenu   = document.getElementById('menu'),
     scOver   = document.getElementById('over'),
-    elMute   = document.getElementById('mute');
+    scPaused = document.getElementById('paused'),
+    scFacts  = document.getElementById('facts'),
+    bPause   = document.getElementById('bpause'),
+    bMusic   = document.getElementById('bmusic'),
+    mMusic   = document.getElementById('mmusic'),
+    pMusic   = document.getElementById('pmusic');
 
-var MAX_HALF = 10;                 // 5 plates
+var MAX_LIVES = 5;
 var HS_KEY = 'gramslash.highscore', MUTE_KEY = 'gramslash.muted';
 function loadNum(k){ try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch(e){ return 0; } }
 function saveNum(k,v){ try { localStorage.setItem(k, String(v)); } catch(e){} }
@@ -541,19 +730,29 @@ function saveNum(k,v){ try { localStorage.setItem(k, String(v)); } catch(e){} }
 var G = {
   state: 'menu',
   score: 0, best: loadNum(HS_KEY),
-  half: MAX_HALF, time: 0, spawnIn: 1.4,
+  lives: MAX_LIVES, time: 0, spawnIn: 1.4, paused: false,
   streak: 0, bestStreak: 0, bestCombo: 0, spawned: 0,
   shake: 0, flash: 0, flashCol: '255,60,72'
 };
 try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch(e){}
-elMute.textContent = muted ? '🔇' : '🔊';
+
+/* One switch for everything you can hear: music and effects together. */
+function syncSoundButtons(){
+  var cls = 'cbtn' + (muted ? ' off' : '');
+  bMusic.className = cls; mMusic.className = cls; pMusic.className = cls;
+}
+function toggleSound(){
+  muted = !muted;
+  try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch(e){}
+  syncSoundButtons();
+  if (muted) musicStop();
+  else if (G.state === 'play' && !G.paused) musicStart();
+}
+syncSoundButtons();
 
 function renderLives(){
-  var full = Math.floor(G.half / 2), hasHalf = G.half % 2, html = '';
-  for (var i=0;i<MAX_HALF/2;i++){
-    var cls = i < full ? '' : (i === full && hasHalf ? ' half' : ' gone');
-    html += '<div class="dish' + cls + '"><i></i></div>';
-  }
+  var html = '';
+  for (var i=0;i<MAX_LIVES;i++) html += '<div class="dish' + (i < G.lives ? '' : ' gone') + '"></div>';
   elLives.innerHTML = html;
 }
 function setScore(v){
@@ -575,10 +774,11 @@ function showFact(sp, tone, custom){
    Starts deliberately slow: one microbe at a time, long lazy arcs.
    Everything below ramps over roughly two and a half minutes.        */
 function difficulty(){
-  return Math.min(1, G.time / 150 + G.score / 6000);
+  // a calm 5-second intro, then a steep climb to full speed by ~40 seconds
+  return Math.max(0, Math.min(1, (G.time - 5) / 35 + G.score / 4000));
 }
-function gravityNow(){                 // gentle fall, a little brisker late on
-  return H * (1.0 + 0.42 * difficulty());
+function gravityNow(){                 // gentle fall, brisker as the round heats up
+  return H * (1.0 + 0.5 * difficulty());
 }
 
 function countActive(){
@@ -591,7 +791,7 @@ function pickSpecies(){
   var d = difficulty();
   if (G.time > 22 && Math.random() < 0.025 + 0.06*d) return SP.bomb;
   if (G.score > 300 && Math.random() < 0.04 + 0.03*d) return SP.mrsa;
-  if (Math.random() < (G.half < MAX_HALF ? 0.07 : 0.035)) return SP.phage;
+  if (Math.random() < (G.lives < MAX_LIVES ? 0.07 : 0.035)) return SP.phage;
   var pool = (Math.random() < 0.34)
     ? [SP.lacto, SP.sacch, SP.rhizo]
     : [SP.staph, SP.ecoli, SP.candida];
@@ -636,16 +836,16 @@ function spawnOne(sp, delay, lane){
 
 function spawnWave(){
   var d = difficulty();
-  var maxActive = 2 + Math.floor(d * 4);          // 2 on screen at first, 6 at the end
+  var maxActive = 2 + Math.round(d * 5);          // 2 on screen at first, 7 flat out
   var room = maxActive - countActive();
-  if (room <= 0){ G.spawnIn = 0.4; return; }
+  if (room <= 0){ G.spawnIn = 0.3; return; }
   var n = 1;
-  if (d > 0.22 && Math.random() < 0.2 + d*0.45) n = 2;
-  if (d > 0.55 && Math.random() < d*0.4) n = 3;
+  if (d > 0.1  && Math.random() < 0.3 + d*0.5) n = 2;
+  if (d > 0.42 && Math.random() < d*0.55) n = 3;
   n = Math.min(n, room, 3);
   var lanes = pickLanes(n);
-  for (var i=0;i<n;i++) spawnOne(pickSpecies(), i * (0.34 + Math.random()*0.26), lanes[i]);
-  G.spawnIn = (2.1 - 1.15*d) * (0.85 + Math.random()*0.3) + (n-1) * 0.3;
+  for (var i=0;i<n;i++) spawnOne(pickSpecies(), i * (0.26 + Math.random()*0.2), lanes[i]);
+  G.spawnIn = (1.6 - 1.05*d) * (0.85 + Math.random()*0.3) + (n-1) * 0.22;
 }
 
 /* ---------------------- effects ---------------------- */
@@ -708,9 +908,9 @@ function segCircle(x1,y1,x2,y2,cx,cy,r){
   return (px*px + py*py) <= r*r;
 }
 
-function gainHalf(x, y, label){
-  if (G.half >= MAX_HALF) return false;
-  G.half++; renderLives();
+function gainLife(x, y, label){
+  if (G.lives >= MAX_LIVES) return false;
+  G.lives++; renderLives();
   popFloat(x, y, label, GREEN, 24);
   ring(x, y, '61,220,132', 200);
   SFX.life();
@@ -758,9 +958,9 @@ function sliceMicrobe(m, ang){
     SFX.good();
     G.streak = 0; elStreak.textContent = '';
     setScore(G.score - 20);
-    popFloat(m.x, m.y, 'THAT WAS A GOOD ONE!', RED, 21);
-    showFact(sp, 'bad', 'you killed a helpful microbe — half a plate lost. ' + sp.facts[0]);
-    loseHalf('You wiped out your own good bacteria.');
+    popFloat(m.x, m.y, 'THAT WAS A GOOD ONE!  −1', RED, 21);
+    showFact(sp, 'bad', 'you killed a helpful microbe — that costs a life. ' + sp.facts[0]);
+    loseLife('You wiped out your own good bacteria.');
     return;
   }
   // ---- pathogen ----
@@ -795,7 +995,7 @@ function sliceMicrobe(m, ang){
   }
   // every clean run of 5 grows half a plate back
   if (G.streak % 5 === 0){
-    if (!gainHalf(W/2, H*0.4, 'STREAK ' + G.streak + '  +½ PLATE')){
+    if (!gainLife(W/2, H*0.4, 'STREAK ' + G.streak + '  +1 LIFE')){
       setScore(G.score + 50);
       popFloat(W/2, H*0.4, 'STREAK ' + G.streak + '  +50', GREEN, 24);
       SFX.bonus();
@@ -806,7 +1006,7 @@ function sliceMicrobe(m, ang){
 }
 
 function cut(x1, y1, x2, y2){
-  if (G.state !== 'play') return;
+  if (G.state !== 'play' || G.paused) return;
   var ang = Math.atan2(y2-y1, x2-x1);
   var L = microbes.live;
   for (var i=0;i<L.length;i++){
@@ -818,16 +1018,18 @@ function cut(x1, y1, x2, y2){
 }
 
 /* ---------------------- lives / run end ---------------------- */
-function loseHalf(reason){
-  G.half--;
+function loseLife(reason){
+  G.lives--;
   renderLives();
-  if (G.half <= 0) gameOver(reason);
+  if (G.lives <= 0) gameOver(reason);
 }
 
 function gameOver(reason){
   if (G.state !== 'play') return;
   G.state = 'over';
-  G.half = 0; renderLives();
+  G.paused = false;
+  G.lives = 0; renderLives();
+  musicStop();
   shake(18); flash('255,60,72', 0.5);
   SFX.over();
   document.getElementById('greason').textContent = reason;
@@ -838,43 +1040,84 @@ function gameOver(reason){
   document.getElementById('tiptext').textContent = TIPS[(Math.random()*TIPS.length)|0];
   factTimer = 0; elFact.className = '';
   setTimeout(function(){
-    scOver.classList.add('on');
+    showScreen(scOver);
     elHud.classList.remove('on');
     elSig.classList.remove('on');
   }, 700);
 }
 
+function showScreen(el){
+  scMenu.classList.remove('on'); scOver.classList.remove('on');
+  scPaused.classList.remove('on'); scFacts.classList.remove('on');
+  if (el) el.classList.add('on');
+}
+
 function startGame(){
   audioInit(); SFX.start();
+  elHud.classList.remove('frozen');
   microbes.live.length = 0; halves.live.length = 0;
   parts.live.length = 0; floats.live.length = 0; rings.live.length = 0;
-  G.state = 'play'; G.half = MAX_HALF; G.time = 0; G.spawnIn = 1.1;
+  G.state = 'play'; G.paused = false;
+  G.lives = MAX_LIVES; G.time = 0; G.spawnIn = 1.1;
   G.streak = 0; G.bestStreak = 0; G.bestCombo = 0;
   G.shake = 0; G.flash = 0;
   swipeKills = 0; trail.length = 0;
   setScore(0); renderLives();
   elStreak.textContent = '';
-  scMenu.classList.remove('on'); scOver.classList.remove('on');
-  elHud.classList.add('on'); elSig.classList.add('on'); elMute.classList.remove('hide');
+  showScreen(null);
+  elHud.classList.add('on'); elSig.classList.add('on');
   elFact.className = '';
+  musicStart();
 }
 
 function toMenu(){
-  G.state = 'menu';
+  G.state = 'menu'; G.paused = false;
+  elHud.classList.remove('frozen');
   microbes.live.length = 0; halves.live.length = 0;
-  scOver.classList.remove('on'); scMenu.classList.add('on');
-  elHud.classList.remove('on'); elSig.classList.remove('on'); elMute.classList.add('hide');
+  musicStop();
+  showScreen(scMenu);
+  elHud.classList.remove('on'); elSig.classList.remove('on');
   elFact.className = '';
 }
 
+function setPaused(v){
+  if (G.state !== 'play' || G.paused === v) return;
+  G.paused = v;
+  pointerDown = false; trail.length = 0;
+  elHud.classList.toggle('frozen', v);
+  if (v){ musicStop(); showScreen(scPaused); }
+  else  { showScreen(null); musicStart(); last = 0; }
+}
+
+function showFacts(){
+  G.state = 'facts';
+  showScreen(scFacts);
+  document.getElementById('flist').scrollTop = 0;
+}
+
+function buildFacts(){
+  var html = '';
+  for (var i=0;i<FACTS.length;i++){
+    var f = FACTS[i];
+    html += '<div class="fcard"><div class="ftop"><span>' + f.icon + '</span>' +
+            '<h4>' + f.title + '</h4>' +
+            '<span class="badge ' + f.bc + '">' + f.badge + '</span></div>' +
+            '<p>' + f.text + '</p></div>';
+  }
+  document.getElementById('flist').innerHTML = html;
+}
+buildFacts();
+
 document.getElementById('play').addEventListener('click', startGame);
 document.getElementById('again').addEventListener('click', startGame);
-document.getElementById('tomenu').addEventListener('click', toMenu);
-elMute.addEventListener('click', function(){
-  muted = !muted;
-  elMute.textContent = muted ? '🔇' : '🔊';
-  try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch(e){}
-});
+document.getElementById('tofacts').addEventListener('click', showFacts);
+document.getElementById('fhome').addEventListener('click', toMenu);
+document.getElementById('resume').addEventListener('click', function(){ setPaused(false); });
+document.getElementById('quit').addEventListener('click', toMenu);
+bPause.addEventListener('click', function(){ setPaused(!G.paused); });
+bMusic.addEventListener('click', toggleSound);
+mMusic.addEventListener('click', function(){ audioInit(); toggleSound(); });
+pMusic.addEventListener('click', toggleSound);
 
 /* ---------------------- pointer input ---------------------- */
 function localPos(e){
@@ -898,6 +1141,7 @@ function pushTrail(x, y){
 }
 function down(e){
   audioInit();
+  if (G.paused) return;
   pointerDown = true; swipeKills = 0;
   trail.length = 0;
   var p = localPos(e); trail.push({x:p.x, y:p.y, t:0});
@@ -981,8 +1225,8 @@ function update(dt){
         G.streak = 0;
         elStreak.textContent = '';
         SFX.miss(); flash('255,60,72', 0.28); shake(5);
-        popFloat(Math.min(W-60, Math.max(60, m.x)), H - 80*S, 'ESCAPED  −½', RED, 20);
-        loseHalf(m.sp.name + ' got away and spread.');
+        popFloat(Math.min(W-60, Math.max(60, m.x)), H - 80*S, 'ESCAPED  −1', RED, 20);
+        loseLife(m.sp.name + ' got away and spread.');
       }
     }
   }
@@ -1188,13 +1432,14 @@ function frame(now){
   var dt = (now - last) / 1000;
   last = now;
   if (dt > 0.05) dt = 0.05;
-  update(dt);
+  if (!G.paused) update(dt);
   render();
 }
 requestAnimationFrame(frame);
 
 document.addEventListener('visibilitychange', function(){
   if (document.hidden){
+    setPaused(true);                        // never lose lives in a backgrounded tab
     pointerDown = false; trail.length = 0;
     if (AC && AC.state === 'running') AC.suspend();
   } else {
@@ -1202,6 +1447,7 @@ document.addEventListener('visibilitychange', function(){
     if (AC && AC.state === 'suspended' && !muted) AC.resume();
   }
 });
+window.addEventListener('blur', function(){ setPaused(true); });
 
 GRAV = gravityNow();
 renderLives();
