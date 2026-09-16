@@ -1,5 +1,5 @@
 /* Gram Slash service worker — precache everything, serve offline first. */
-var CACHE = 'gramslash-v1';
+var CACHE = 'gramslash-v2';
 var ASSETS = [
   './',
   './index.html',

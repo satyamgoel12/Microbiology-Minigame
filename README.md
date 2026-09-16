@@ -1,37 +1,50 @@
 # Gram Slash 🧫
 
 A Fruit-Ninja-style microbiology minigame, built for a college microorganisms
-awareness day. Microbes arc up across the screen — **slash the pathogens, let the
-good flora pass**. Every slice teaches one fact about the organism you just hit.
+awareness day. Microbes arc up across the screen — **slash the harmful ones, let
+the helpful ones live**. Every slice shows one line about the microbe you just
+hit, and every round ends with one piece of advice worth taking home.
 
-Single file, no build step, no libraries, no external requests. Open `index.html`
-and it runs — on a phone, on a projector, or offline once it has been installed.
+Single file, no build step, no libraries, no external requests. Open
+`index.html` and it runs — on a phone, on a projector, or offline once it has
+been opened.
+
+**Made by Satyam.**
 
 ## How to play
 
-| Thing on screen | What it means | What to do |
+The whole rule is the glow, not the shape:
+
+| On screen | Meaning | Do |
 |---|---|---|
-| **Red danger aura** | Pathogen: *S. aureus*, *E. coli* O157:H7, *Salmonella*, *C. albicans*, Influenza A | Slash it — points, with a combo multiplier for several in one swipe |
-| **Green halo + dashed ring** | Beneficial: *Lactobacillus*, *S. cerevisiae*, *Rhizobium* | Leave it alone. Slashing it costs a life and −25 ("you nuked your good flora!") |
-| **Violet body** | Gram-positive — crystal violet is retained by the thick peptidoglycan wall | visual/teaching cue only |
-| **Pink body** | Gram-negative — decolourised, then counterstained with safranin | visual/teaching cue only |
-| **Grey spiky ball** | Influenza A — a virus, so not Gram-stainable at all | slash it, it is a pathogen |
-| **Gold-ringed cluster (MRSA)** | The superbug. Each pass strips one resistance ring | needs **three separate swipes**, then pays 60 × combo |
-| **Teal bacteriophage** | A virus that only kills bacteria | slash it to **lyse every pathogen on screen** |
-| **☣ Biohazard** | The sharps bin | never touch it — it ends the run instantly |
+| **Red glow** | Harmful: *S. aureus*, *E. coli*, *C. albicans* | Slash it. Several in one swipe multiplies the score |
+| **Green glow + dashed ring** | Helpful: *Lactobacillus*, baker's yeast, *Rhizobium* | Leave it alone |
+| **Red rings, bigger cluster** | MRSA superbug | Three separate swipes to clear it, worth 60 |
+| **Green phage** | Bacteriophage — a virus that kills only bacteria | Slash it to wipe every harmful microbe on screen |
+| **☣ Biohazard** | The sharps bin | Never touch it. It ends the round instantly |
 
-Rules: 3 lives (petri dishes, top right). You lose one for slashing a beneficial,
-and one for letting a pathogen fall off the bottom of the plate. A clean streak of
-15 pathogens with no mistakes grows a plate back; every 10 gives +75. High score,
-top combo and best streak are kept in `localStorage`.
+Each microbe comes as a matched pair — the harmful rod (*E. coli*) and the
+helpful rod (*Lactobacillus*) look alike, as do the two yeasts. That is the
+point: shape does not tell you who the enemy is.
 
-The blade is a swab of **70% IPA** — which is exactly why the game rewards a
-targeted wipe over carpet-bombing the whole plate.
+Body colour teaches the Gram stain in passing: **violet = Gram-positive**
+(the thick wall keeps the crystal violet), **pink = Gram-negative** (it loses
+the violet and takes the pink counterstain).
+
+**Lives.** You start with 5 plates. Slashing a helpful microbe, or letting a
+harmful one fall off the bottom, costs **half a plate** — so it takes ten
+mistakes to end a run, not five. Every **5 harmful microbes in a row with no
+mistakes gives half a plate back** (or +50 if you are already full). Score, top
+combo and best streak are kept in `localStorage`.
+
+**Pace.** Rounds start deliberately slow — one microbe at a time on a long, lazy
+arc — and build over about two and a half minutes to six on screen at once.
+Microbes spawn into four fixed lanes so they never arrive as one unhittable clump.
 
 ## Run it locally
 
-Any static server works (a `file://` open works too, but the service worker —
-and therefore offline mode — only registers over `http(s)`):
+Any static server works (opening the file directly works too, but the service
+worker — and therefore offline play — only registers over `http(s)`):
 
 ```bash
 python3 -m http.server 8000
@@ -42,74 +55,69 @@ python3 -m http.server 8000
 
 The site is plain static files at the repository root, so Pages needs no build.
 
-**1. Get the files onto `main`**
+1. Push to `main` (Pages serves `main`).
+2. Open `https://github.com/satyamgoel12/Microbiology-Minigame` → **Settings** → **Pages**.
+3. **Source:** Deploy from a branch. **Branch:** `main`, folder **`/ (root)`**. Save.
+4. Wait for the green check in the **Actions** tab (about a minute on the first run).
 
-```bash
-git checkout main
-git merge claude/compassionate-bardeen-dpnb4a   # or merge the PR on github.com
-git push origin main
-```
-
-**2. Turn Pages on**
-
-1. Open `https://github.com/satyamgoel12/Microbiology-Minigame` → **Settings** → **Pages**.
-2. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-3. Set **Branch** to `main` and the folder to **`/ (root)`**, then **Save**.
-4. Wait for the green check in the **Actions** tab (roughly a minute on the first run).
-
-**3. Play it**
+It goes live at:
 
 ```
 https://satyamgoel12.github.io/Microbiology-Minigame/
 ```
 
-Pages serves over HTTPS, so the service worker registers and the game becomes
-installable: on Android Chrome, ⋮ → *Add to Home screen*; on iOS Safari, Share →
-*Add to Home Screen*. After the first visit it plays **fully offline** — useful when
-the venue Wi-Fi gives out mid-event.
+Pages serves over HTTPS, so the game is installable: Android Chrome ⋮ → *Add to
+Home screen*, iOS Safari Share → *Add to Home Screen*. After the first visit it
+plays **fully offline** — useful when the venue Wi-Fi gives out mid-event.
 
-**Updating a deployed copy:** bump `CACHE` in `sw.js` (`gramslash-v1` → `-v2`)
-whenever you change `index.html`, otherwise already-installed copies keep serving
-the old cached build.
+> **Every time you change the game, bump `CACHE` in `sw.js`** (`gramslash-v2` →
+> `gramslash-v3`). Phones that already opened the game keep serving the old
+> cached build until that string changes. See `CLAUDE.md`.
 
 ## Files
 
 ```
-index.html             the whole game — markup, CSS, and JS in one file (~50 KB)
+index.html             the whole game — markup, CSS and JS in one file (~50 KB)
 sw.js                  service worker: precache + offline-first fetch
 manifest.webmanifest   PWA manifest (fullscreen, portrait, icons)
 icon-192.png           home-screen icon
 icon-512.png           home-screen / maskable icon
+CLAUDE.md              working rules for anyone (or any agent) editing this
 ```
 
-Total payload ≈ 90 KB. Nothing is fetched from a CDN.
+Total payload ≈ 90 KB, nothing fetched from a CDN.
 
 ## Tweaking it for your event
 
 Everything worth changing sits near the top of the script in `index.html`:
 
-- **`SPECIES`** — the roster. Copy an entry to add an organism: give it a `kind`
-  (`path` / `good` / `bomb` / `phage`), a `gram` (`+`, `-`, or `n` for
-  not-stainable), a `shape` (one of the drawing routines in `drawBody`), points,
-  and its `facts` array. Facts are picked at random per slice.
-- **`difficulty()`** — how fast the ramp goes (time and score based).
-- **`pickSpecies()`** — spawn odds for bombs, MRSA, the phage, and the
-  pathogen/beneficial split.
+- **`SPECIES`** — the roster. Copy an entry to add a microbe: `kind`
+  (`path` / `good` / `bomb` / `phage`), `gram` (`+` or `-`), a `shape` from the
+  drawing routines in `drawBody`, points, and a `facts` array (one is picked at
+  random per slice). Keep the list short — the crowd is mostly non-biology.
+- **`TIPS`** — the end-of-round advice. This is the actual takeaway of the game.
+- **`difficulty()`**, **`spawnWave()`**, **`gravityNow()`** — pace, how many
+  microbes share the screen, and how fast they fall.
+- **`LANES`** — the horizontal spawn lanes that stop microbes clumping.
+- **`MAX_HALF`** — lives, counted in half-plates (10 halves = 5 plates).
 - **`STAIN`** — the crystal violet / safranin palette.
 
 ## Implementation notes
 
-- HTML5 Canvas 2D, vanilla JS, `requestAnimationFrame` with delta time clamped to
-  50 ms so a backgrounded tab cannot warp the physics.
-- `devicePixelRatio` capped at 2; canvas resizes off `visualViewport`.
+- HTML5 Canvas 2D, vanilla JS, `requestAnimationFrame` with delta time clamped
+  to 50 ms so a backgrounded tab cannot warp the physics.
+- `devicePixelRatio` capped at 2; the canvas resizes off `visualViewport`.
+- Spawn velocity is solved from the target apex, so microbes reach 70–80% of
+  screen height on any device instead of dying out halfway up a laptop screen.
 - Microbes, splatter, sliced halves, score popups and shockwaves all come from
-  object pools — steady 60 fps with no allocation churn during play.
-- Hit testing is segment-vs-circle against each swipe segment, so fast swipes
-  cannot tunnel past a microbe between frames. Multi-hit microbes get a 0.34 s
-  cooldown so one swipe is one hit.
-- Every microbe is drawn procedurally (cocci clusters, rods with flagella and
-  fimbriae, budding yeast with pseudohyphae, a spiked virion, an icosahedral
-  phage). Slices split the body into two clipped halves that fly apart.
+  object pools — 60 fps with no allocation churn during play.
+- Hit testing is segment-vs-circle against each swipe segment, so a fast swipe
+  cannot tunnel past a microbe between frames. MRSA gets a 0.34 s cooldown so
+  one swipe is one hit.
+- Every microbe is drawn procedurally — cocci clusters, rods, budding yeast with
+  invasive tubes, an icosahedral phage. Slices split the body into two clipped
+  halves that fly apart.
 - All sound is synthesised through Web Audio on first touch — no audio files.
 - `touch-action:none`, `overscroll-behavior:none` and prevented gesture events
-  stop scroll/zoom on mobile; layout respects iOS safe-area insets.
+  stop scroll and zoom on mobile; the layout respects iOS safe-area insets and
+  fits a 320×568 screen.
