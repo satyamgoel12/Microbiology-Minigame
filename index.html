@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gram Slash — Microbiology Minigame</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06121a">
+<meta name="description" content="Gram Slash — a Fruit-Ninja-style microbiology game. Slash the pathogens, spare the good flora.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gram Slash">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --violet:#8b5cf6; --pink:#f4648f; --red:#ff4d5e; --green:#3ddc84;
+    --ink:#e8f4f8; --dim:#8ea9b6; --panel:rgba(8,22,30,.88);
+    --safeT:env(safe-area-inset-top,0px); --safeB:env(safe-area-inset-bottom,0px);
+    --safeL:env(safe-area-inset-left,0px); --safeR:env(safe-area-inset-right,0px);
+  }
+  html,body{height:100%;overflow:hidden;background:#06121a}
+  body{
+    font-family:ui-rounded,"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    color:var(--ink); touch-action:none; overscroll-behavior:none;
+    -webkit-user-select:none;user-select:none; position:fixed; inset:0;
+  }
+  #c{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .layer{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column}
+
+  /* ---------- HUD ---------- */
+  #hud{padding:calc(var(--safeT) + 10px) calc(var(--safeR) + 14px) 0 calc(var(--safeL) + 14px);
+       display:flex;flex-direction:row;align-items:flex-start;justify-content:space-between;
+       gap:10px;opacity:0;transition:opacity .25s}
+  #hud.on{opacity:1}
+  #score{font-size:30px;font-weight:800;line-height:1;letter-spacing:-.5px;
+         text-shadow:0 2px 12px rgba(0,0,0,.7)}
+  #best{font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:.09em;text-transform:uppercase}
+  #streak{font-size:11px;color:var(--green);margin-top:3px;letter-spacing:.06em;min-height:13px}
+  #lives{display:flex;gap:6px;margin-right:36px}   /* clear of the mute button */
+  .dish{width:26px;height:26px;border-radius:50%;border:2px solid rgba(61,220,132,.85);
+        background:radial-gradient(circle at 34% 30%,rgba(61,220,132,.42),rgba(61,220,132,.08) 70%);
+        box-shadow:0 0 10px rgba(61,220,132,.3) inset;transition:transform .2s,opacity .2s,border-color .2s}
+  .dish.gone{opacity:.22;border-color:rgba(255,77,94,.55);background:none;transform:scale(.8) rotate(25deg)}
+
+  /* ---------- fact ticker ---------- */
+  #fact{margin-top:auto;margin-bottom:calc(var(--safeB) + 16px);align-self:center;
+        max-width:min(94vw,560px);text-align:center;font-size:13px;line-height:1.45;
+        padding:9px 15px;border-radius:14px;background:var(--panel);
+        border:1px solid rgba(139,92,246,.35);backdrop-filter:blur(6px);
+        opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s}
+  #fact.on{opacity:1;transform:none}
+  #fact b{color:var(--violet)}
+  #fact.bad{border-color:rgba(255,77,94,.55)} #fact.bad b{color:var(--red)}
+  #fact.good{border-color:rgba(61,220,132,.5)} #fact.good b{color:var(--green)}
+
+  /* ---------- screens ---------- */
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+          justify-content:flex-start;gap:16px;text-align:center;pointer-events:auto;
+          padding:calc(var(--safeT) + 18px) 22px calc(var(--safeB) + 18px);
+          background:radial-gradient(ellipse at 50% 40%,rgba(10,32,44,.86),rgba(4,10,14,.96));
+          overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .screen.on{display:flex}
+  .screen>*:first-child{margin-top:auto}
+  .screen>*:last-child{margin-bottom:auto}
+  h1{font-size:clamp(38px,13vw,72px);font-weight:900;line-height:.92;letter-spacing:-2px;
+     background:linear-gradient(100deg,var(--violet),var(--pink) 55%,#ffd86b);
+     -webkit-background-clip:text;background-clip:text;color:transparent;
+     filter:drop-shadow(0 4px 18px rgba(139,92,246,.35))}
+  .tag{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-top:-8px}
+  .card{background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:18px;
+        padding:14px 16px;max-width:min(94vw,440px);font-size:13.5px;line-height:1.6;text-align:left}
+  .card h3{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;font-weight:700}
+  .row{display:flex;align-items:flex-start;gap:9px;margin:6px 0}
+  .row>span:last-child{flex:1}
+  .sw{margin-top:3px}
+  .sw{width:15px;height:15px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 8px currentColor}
+  .k{color:#fff;font-weight:700}
+  button{pointer-events:auto;font:inherit;font-weight:800;font-size:17px;letter-spacing:.04em;
+         color:#07131a;background:linear-gradient(140deg,#5eead4,var(--green));border:0;
+         padding:15px 40px;border-radius:999px;box-shadow:0 8px 26px rgba(61,220,132,.3);cursor:pointer}
+  button:active{transform:translateY(2px) scale(.98)}
+  button.ghost{background:none;color:var(--dim);box-shadow:none;font-size:13px;padding:8px 16px;font-weight:600;
+               text-decoration:underline;text-underline-offset:3px}
+  #gscore{font-size:60px;font-weight:900;line-height:1;letter-spacing:-2px}
+  #gsub{font-size:13px;color:var(--dim)}
+  #greason{font-size:15px;font-weight:700;max-width:min(92vw,420px)}
+  .stats{display:flex;gap:22px;justify-content:center;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .stats b{display:block;font-size:22px;color:var(--ink);letter-spacing:-.5px;text-transform:none;margin-top:2px}
+  #mute{position:absolute;top:calc(var(--safeT) + 8px);right:calc(var(--safeR) + 10px);
+        pointer-events:auto;background:none;box-shadow:none;color:var(--dim);font-size:20px;padding:10px;border-radius:12px}
+  .hide{display:none!important}
+  @media (max-height:640px), (max-width:340px){
+    h1{font-size:clamp(30px,11vw,48px)}
+    .card{font-size:12px;line-height:1.45;padding:11px 13px}
+    .row{margin:4px 0}
+    button{padding:13px 32px;font-size:15px}
+    .screen{gap:11px}
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="layer" id="hud">
+  <div>
+    <div id="score">0</div>
+    <div id="best">Best 0</div>
+    <div id="streak"></div>
+  </div>
+  <div id="lives"></div>
+</div>
+<div class="layer"><div id="fact"></div></div>
+
+<div class="screen on" id="menu">
+  <h1>GRAM<br>SLASH</h1>
+  <div class="tag">Swipe · Stain · Sterilise</div>
+  <div class="card">
+    <h3>Mission</h3>
+    You are a swab of <span class="k">70% IPA</span>. Wipe out the pathogens —
+    <span class="k">spare the good flora</span>.
+    <div class="row"><span class="sw" style="background:#ff4d5e;color:#ff4d5e"></span><span>Red aura = pathogen → <span class="k">SLASH</span></span></div>
+    <div class="row"><span class="sw" style="background:#3ddc84;color:#3ddc84"></span><span>Green halo = beneficial → <span class="k">LET IT PASS</span></span></div>
+    <div class="row"><span class="sw" style="background:#8b5cf6;color:#8b5cf6"></span><span>Violet body = Gram-positive (crystal violet)</span></div>
+    <div class="row"><span class="sw" style="background:#f4648f;color:#f4648f"></span><span>Pink body = Gram-negative (safranin)</span></div>
+    <div class="row"><span class="sw" style="background:#facc15;color:#facc15"></span><span>☣ Biohazard bin = run over instantly</span></div>
+    <div class="row"><span class="sw" style="background:#5eead4;color:#5eead4"></span><span>Bacteriophage = lyses every pathogen on screen</span></div>
+  </div>
+  <button id="play">START CULTURE</button>
+  <div class="tag" style="font-size:10px;letter-spacing:.12em">3 lives · missed pathogens contaminate the plate</div>
+</div>
+
+<div class="screen" id="over">
+  <div class="tag">Culture terminated</div>
+  <div id="greason">Contaminated.</div>
+  <div id="gscore">0</div>
+  <div id="gsub">CFU destroyed</div>
+  <div class="stats">
+    <div>Best<b id="gbest">0</b></div>
+    <div>Top combo<b id="gcombo">0</b></div>
+    <div>Best streak<b id="gstreak">0</b></div>
+  </div>
+  <button id="again">RE-INOCULATE</button>
+  <button class="ghost" id="tomenu">back to lab bench</button>
+</div>
+
+<button id="mute" class="hide" aria-label="Toggle sound">🔊</button>
+<script>
+(function(){
+'use strict';
+
+/* =======================================================================
+   GRAM SLASH — Fruit-Ninja-style microbiology game.
+   Everything (art, audio, physics) is generated at runtime: no assets.
+   ======================================================================= */
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d', {alpha:false});
+var W=0, H=0, DPR=1, S=1;          // S = art scale factor for small screens
+var GRAV = 1600;                   // px/s^2, recomputed on resize
+
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  var vv = window.visualViewport;
+  W = Math.max(240, Math.round(vv ? vv.width  : window.innerWidth));
+  H = Math.max(320, Math.round(vv ? vv.height : window.innerHeight));
+  canvas.width  = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.lineJoin = ctx.lineCap = 'round';
+  S = Math.max(0.68, Math.min(1.35, Math.min(W,H)/420));
+  GRAV = H * 2.0;
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function(){ setTimeout(resize, 200); });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+resize();
+
+/* ----------------------------------------------------------------------
+   Palette: crystal violet for Gram-positive, safranin pink for Gram-negative.
+   ---------------------------------------------------------------------- */
+var STAIN = {
+  '+' : {body:'#7c3fd6', mid:'#9b6bef', edge:'#43197f', splat:'#8b5cf6'},
+  '-' : {body:'#e6537f', mid:'#f9819f', edge:'#8e2244', splat:'#f4648f'},
+  'n' : {body:'#4d6b7a', mid:'#7f9fae', edge:'#22343d', splat:'#8ea9b6'}  // not Gram-stainable
+};
+
+/* Species table. kind: path | good | bomb | phage
+   shape drives the procedural drawing routine.                          */
+var SPECIES = [
+  { id:'staph', name:'S. aureus', kind:'path', gram:'+', shape:'cluster', r:33, pts:10, w:16,
+    facts:['Gram-positive cocci in grape-like clusters; coagulase positive.',
+           'Lives up your nose — then infects the wound you touched.',
+           'Golden colonies on blood agar, beta-haemolytic.'] },
+  { id:'ecoli', name:'E. coli O157:H7', kind:'path', gram:'-', shape:'rod', r:32, pts:10, w:15,
+    facts:['Gram-negative rod; Shiga toxin causes bloody diarrhoea and HUS.',
+           'Sorbitol-negative on SMAC agar — that is how the lab spots O157.',
+           'Only ~10 cells can be an infectious dose. Cook the burger.'] },
+  { id:'salmonella', name:'Salmonella', kind:'path', gram:'-', shape:'flagrod', r:32, pts:12, w:14,
+    facts:['Gram-negative, motile with peritrichous flagella.',
+           'Black-centred colonies on XLD agar from H2S production.',
+           'Non-lactose fermenter: pale on MacConkey.'] },
+  { id:'candida', name:'C. albicans', kind:'path', gram:'+', shape:'yeast', r:34, pts:12, w:12,
+    facts:['Budding yeast that grows germ tubes at 37 degrees C.',
+           'A fungus, not a bacterium — antibiotics will not touch it.',
+           'Overgrows exactly when you wipe out the good flora.'] },
+  { id:'flu', name:'Influenza A', kind:'path', gram:'n', shape:'virus', r:28, pts:15, w:10,
+    facts:['Enveloped RNA virus; HA and NA spikes drive antigenic shift.',
+           'Not Gram-stainable — too small, and not even a cell.',
+           'Alcohol works: it dissolves the lipid envelope.'] },
+  { id:'lacto', name:'Lactobacillus', kind:'good', gram:'+', shape:'rod', r:31, pts:0, w:13,
+    facts:['Gram-positive rod; ferments sugars to lactic acid.',
+           'Guards the gut and vaginal flora by keeping the pH low.',
+           'The reason yoghurt, idli batter and kimchi exist.'] },
+  { id:'sacch', name:'S. cerevisiae', kind:'good', gram:'+', shape:'goodyeast', r:33, pts:0, w:11,
+    facts:['Baker and brewer yeast — and the model eukaryote of genetics.',
+           'Buds instead of dividing; look for the bud scars.',
+           'Harmless fungus. Bread owes it everything.'] },
+  { id:'rhizo', name:'Rhizobium', kind:'good', gram:'-', shape:'nodulerod', r:31, pts:0, w:11,
+    facts:['Gram-negative rod that fixes nitrogen in legume root nodules.',
+           'Turns N2 from air into ammonia — free fertiliser for the plant.',
+           'Kill it and your dal crop suffers.'] },
+  { id:'mrsa', name:'MRSA', kind:'path', gram:'+', shape:'mrsa', r:40, pts:60, w:0, hp:3,
+    facts:['Methicillin-resistant S. aureus: mecA encodes PBP2a.',
+           'Beta-lactams bounce off. Vancomycin is the fallback.',
+           'Superbug — needs three passes to sterilise.'] },
+  { id:'phage', name:'Bacteriophage', kind:'phage', gram:'n', shape:'phage', r:30, pts:25, w:0,
+    facts:['A virus that only eats bacteria — phage therapy in one slash.',
+           'Icosahedral head, contractile tail, injects its DNA and lyses.'] },
+  { id:'bomb', name:'BIOHAZARD', kind:'bomb', gram:'n', shape:'bomb', r:34, pts:0, w:0,
+    facts:['Never slash the biohazard bag. Autoclave it.'] }
+];
+var SP = {};
+for (var i=0;i<SPECIES.length;i++) SP[SPECIES[i].id] = SPECIES[i];
+
+/* ----------------------------------------------------------------------
+   Audio — everything synthesised, no files.
+   ---------------------------------------------------------------------- */
+var AC=null, master=null, noiseBuf=null, muted=false;
+function audioInit(){
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  var Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return;
+  AC = new Ctor();
+  master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination);
+  var n = Math.floor(AC.sampleRate * 0.45);
+  noiseBuf = AC.createBuffer(1, n, AC.sampleRate);
+  var d = noiseBuf.getChannelData(0);
+  for (var k=0;k<n;k++) d[k] = (Math.random()*2-1) * (1 - k/n);
+}
+function tone(f0, f1, dur, type, vol, delay){
+  if (!AC || muted) return;
+  var t = AC.currentTime + (delay||0);
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f0, t);
+  if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20,f1), t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol==null?0.22:vol, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+}
+function noise(dur, vol, f0, f1){
+  if (!AC || muted || !noiseBuf) return;
+  var t = AC.currentTime;
+  var s = AC.createBufferSource(); s.buffer = noiseBuf;
+  var bp = AC.createBiquadFilter(); bp.type='bandpass'; bp.Q.value = 0.9;
+  bp.frequency.setValueAtTime(f0||1800, t);
+  bp.frequency.exponentialRampToValueAtTime(f1||400, t+dur);
+  var g = AC.createGain();
+  g.gain.setValueAtTime(vol==null?0.2:vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t+dur+0.02);
+}
+var SFX = {
+  swipe:  function(){ noise(0.13, 0.11, 2600, 700); },
+  kill:   function(n){ var f = 420 * Math.pow(1.13, Math.min(n,12));
+                       noise(0.1, 0.16, 3000, 900); tone(f, f*2.1, 0.13, 'triangle', 0.2); },
+  good:   function(){ tone(300, 90, 0.42, 'sawtooth', 0.22); tone(150, 60, 0.5, 'square', 0.12, 0.03); },
+  miss:   function(){ tone(210, 120, 0.22, 'sine', 0.14); },
+  bomb:   function(){ noise(0.7, 0.42, 900, 60); tone(120, 32, 0.85, 'square', 0.28); },
+  tough:  function(){ tone(180, 260, 0.1, 'square', 0.18); },
+  phage:  function(){ for (var i=0;i<5;i++) tone(520*Math.pow(1.26,i), 0, 0.16, 'triangle', 0.16, i*0.055); },
+  bonus:  function(){ tone(700,1400,0.16,'triangle',0.18); tone(1050,2100,0.16,'sine',0.1,0.06); },
+  start:  function(){ tone(330,660,0.18,'triangle',0.2); tone(495,990,0.22,'sine',0.12,0.09); },
+  over:   function(){ tone(300,70,0.9,'sawtooth',0.24); }
+};
+
+/* ----------------------------------------------------------------------
+   Object pools
+   ---------------------------------------------------------------------- */
+function Pool(factory){ this.live=[]; this.free=[]; this.factory=factory; }
+Pool.prototype.get = function(){
+  var o = this.free.length ? this.free.pop() : this.factory();
+  this.live.push(o); return o;
+};
+Pool.prototype.sweep = function(){
+  var L = this.live, n = 0;
+  for (var i=0;i<L.length;i++){
+    if (L[i].dead) this.free.push(L[i]); else L[n++] = L[i];
+  }
+  L.length = n;
+};
+
+var microbes = new Pool(function(){ return {}; });
+var parts    = new Pool(function(){ return {}; });
+var halves   = new Pool(function(){ return {}; });
+var floats   = new Pool(function(){ return {}; });
+var rings    = new Pool(function(){ return {}; });
+
+/* ======================================================================
+   PROCEDURAL MICROBE ART
+   Each routine draws a body centred on (0,0) with radius r in a rotated,
+   translated context. No images anywhere.
+   ====================================================================== */
+var TAU = Math.PI * 2;
+
+function blob(r, c, squashY){
+  var g = ctx.createRadialGradient(-r*0.3, -r*0.35, r*0.1, 0, 0, r*1.05);
+  g.addColorStop(0, c.mid); g.addColorStop(0.62, c.body); g.addColorStop(1, c.edge);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r, r * (squashY||1), 0, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = c.edge; ctx.lineWidth = Math.max(1, r*0.09); ctx.stroke();
+}
+
+function coccus(x, y, r, c){
+  var g = ctx.createRadialGradient(x-r*0.35, y-r*0.4, r*0.08, x, y, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.18, c.mid);
+  g.addColorStop(0.7, c.body); g.addColorStop(1, c.edge);
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = c.edge; ctx.lineWidth = Math.max(1, r*0.16); ctx.stroke();
+}
+
+var CLUSTER = [[0,0,1],[0.82,-0.42,0.86],[-0.78,-0.5,0.8],[0.55,0.72,0.78],
+               [-0.62,0.66,0.84],[1.18,0.42,0.6],[-1.2,0.12,0.62]];
+function drawCluster(r, c){
+  var u = r*0.42;
+  for (var i=CLUSTER.length-1;i>=0;i--)
+    coccus(CLUSTER[i][0]*u, CLUSTER[i][1]*u, u*CLUSTER[i][2]*1.05, c);
+}
+
+function rodBody(r, c, len, thick){
+  var L = r*(len||1.6), T = r*(thick||0.78);
+  var g = ctx.createLinearGradient(0,-T,0,T);
+  g.addColorStop(0, c.mid); g.addColorStop(0.5, c.body); g.addColorStop(1, c.edge);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  if (ctx.roundRect) { ctx.roundRect(-L/2, -T/2, L, T, T/2); }
+  else {
+    var rr = T/2;
+    ctx.moveTo(-L/2+rr,-T/2); ctx.lineTo(L/2-rr,-T/2);
+    ctx.arc(L/2-rr,0,rr,-Math.PI/2,Math.PI/2);
+    ctx.lineTo(-L/2+rr,T/2); ctx.arc(-L/2+rr,0,rr,Math.PI/2,-Math.PI/2);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = c.edge; ctx.lineWidth = Math.max(1, r*0.09); ctx.stroke();
+  // gloss
+  ctx.fillStyle = 'rgba(255,255,255,.28)';
+  ctx.beginPath(); ctx.ellipse(-L*0.14, -T*0.24, L*0.22, T*0.13, 0, 0, TAU); ctx.fill();
+}
+
+function flagella(r, c, n, t){
+  ctx.strokeStyle = c.mid; ctx.lineWidth = Math.max(1, r*0.07); ctx.globalAlpha = 0.85;
+  for (var i=0;i<n;i++){
+    var a = (i/n)*TAU + 0.3, sx = Math.cos(a)*r*0.7, sy = Math.sin(a)*r*0.42;
+    ctx.beginPath(); ctx.moveTo(sx, sy);
+    for (var s=1;s<=4;s++){
+      var d = r*0.26*s;
+      ctx.lineTo(sx + Math.cos(a)*d, sy + Math.sin(a)*d + Math.sin(t*7 + s*1.3 + i)*r*0.14);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawYeast(r, c, pseudo, t){
+  // mother cell + bud (+ pseudohyphae for Candida)
+  if (pseudo){
+    ctx.strokeStyle = c.body; ctx.lineWidth = r*0.3; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.moveTo(r*0.5, r*0.4);
+    ctx.quadraticCurveTo(r*1.25, r*0.7 + Math.sin(t*4)*r*0.1, r*1.7, r*0.2);
+    ctx.stroke(); ctx.globalAlpha = 1;
+    coccus(r*1.8, r*0.15, r*0.3, c);
+  }
+  blob(r*0.86, c, 0.92);
+  coccus(r*0.78, -r*0.72, r*0.4, c);          // daughter bud
+  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = Math.max(1, r*0.06);
+  ctx.beginPath(); ctx.arc(r*0.42,-r*0.38, r*0.2, -0.6, 1.9); ctx.stroke();
+}
+
+function drawGoodYeast(r, c){
+  blob(r*0.9, c, 0.95);
+  coccus(-r*0.72, r*0.68, r*0.36, c);
+  ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = Math.max(1, r*0.07);
+  for (var i=0;i<3;i++){                        // bud scars
+    var a = 1.1 + i*1.9;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a)*r*0.55, Math.sin(a)*r*0.5, r*0.15, 0, TAU); ctx.stroke();
+  }
+}
+
+function drawVirus(r, c, t){
+  ctx.strokeStyle = c.mid; ctx.lineWidth = Math.max(1.2, r*0.1);
+  for (var i=0;i<16;i++){                       // HA / NA spikes
+    var a = i/16*TAU + t*0.5, s = r*0.78, e = r*1.12;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a)*s, Math.sin(a)*s);
+    ctx.lineTo(Math.cos(a)*e, Math.sin(a)*e); ctx.stroke();
+    ctx.fillStyle = (i%2) ? '#ffd86b' : c.mid;
+    ctx.beginPath(); ctx.arc(Math.cos(a)*e, Math.sin(a)*e, r*0.1, 0, TAU); ctx.fill();
+  }
+  blob(r*0.76, c, 1);
+  ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = Math.max(1, r*0.07);
+  ctx.beginPath(); ctx.arc(0,0,r*0.4, 0.4, 4.6); ctx.stroke();  // RNA coil hint
+}
+
+function drawMRSA(r, c, hp, t){
+  var pulse = 1 + Math.sin(t*9)*0.035;
+  ctx.save(); ctx.scale(pulse, pulse);
+  drawCluster(r*0.98, c);
+  // resistance shell — one arc per remaining hit
+  ctx.lineWidth = Math.max(2, r*0.12);
+  for (var i=0;i<hp;i++){
+    ctx.strokeStyle = 'rgba(255,216,107,' + (0.35 + i*0.2) + ')';
+    ctx.beginPath();
+    ctx.arc(0,0, r*(1.06 + i*0.12), t*2 + i*2.1, t*2 + i*2.1 + 4.1);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPhage(r, c, t){
+  var teal = {body:'#2dd4bf', mid:'#a7f3d0', edge:'#0f766e'};
+  ctx.strokeStyle = teal.edge; ctx.lineWidth = Math.max(1.4, r*0.1);
+  ctx.beginPath(); ctx.moveTo(0, r*0.1); ctx.lineTo(0, r*0.72);      // tail
+  ctx.stroke();
+  ctx.fillStyle = teal.body;
+  ctx.fillRect(-r*0.1, r*0.1, r*0.2, r*0.6);
+  ctx.strokeStyle = teal.mid;
+  for (var i=-1;i<=1;i+=2){                                          // tail fibres
+    ctx.beginPath(); ctx.moveTo(0, r*0.72);
+    ctx.quadraticCurveTo(i*r*0.4, r*0.85, i*r*0.62, r*1.05); ctx.stroke();
+  }
+  ctx.beginPath();                                                   // icosahedral head
+  for (var k=0;k<6;k++){
+    var a = -Math.PI/2 + k/6*TAU;
+    var px = Math.cos(a)*r*0.62, py = Math.sin(a)*r*0.62 - r*0.28;
+    if (k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  var g = ctx.createLinearGradient(0,-r,0,r*0.3);
+  g.addColorStop(0,'#d9fff4'); g.addColorStop(0.5,teal.body); g.addColorStop(1,teal.edge);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = teal.edge; ctx.lineWidth = Math.max(1, r*0.08); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + Math.sin(t*8)*0.25) + ')';
+  ctx.beginPath(); ctx.arc(-r*0.14,-r*0.42, r*0.12, 0, TAU); ctx.fill();
+}
+
+function drawBomb(r, t){
+  var g = ctx.createRadialGradient(-r*0.3,-r*0.35, r*0.1, 0,0, r);
+  g.addColorStop(0,'#5b5b62'); g.addColorStop(0.55,'#24242a'); g.addColorStop(1,'#0b0b0e');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.fill();
+  ctx.strokeStyle = '#facc15'; ctx.lineWidth = Math.max(2, r*0.1);
+  ctx.globalAlpha = 0.6 + Math.sin(t*11)*0.4;
+  ctx.beginPath(); ctx.arc(0,0,r*0.97,0,TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+  // biohazard trefoil
+  ctx.fillStyle = '#facc15'; ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = Math.max(1.6, r*0.09);
+  for (var i=0;i<3;i++){
+    var a = -Math.PI/2 + i*TAU/3;
+    var cx = Math.cos(a)*r*0.42, cy = Math.sin(a)*r*0.42;
+    ctx.beginPath(); ctx.arc(cx, cy, r*0.3, a - 1.05, a + 1.05); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r*0.1, 0, TAU); ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(0,0,r*0.13,0,TAU); ctx.fill();
+}
+
+/* Draw one species body, centred, unrotated-label-free. */
+function drawBody(sp, r, hp, t){
+  var c = STAIN[sp.gram];
+  switch (sp.shape){
+    case 'cluster':   drawCluster(r, c); break;
+    case 'rod':       rodBody(r, c, 1.7, 0.8); break;
+    case 'flagrod':   flagella(r, c, 6, t); rodBody(r, c, 1.55, 0.82); break;
+    case 'nodulerod': rodBody(r, c, 1.6, 0.8);
+                      ctx.fillStyle = 'rgba(61,220,132,.55)';
+                      ctx.beginPath(); ctx.ellipse(r*0.9, r*0.32, r*0.38, r*0.26, 0.5, 0, TAU); ctx.fill();
+                      break;
+    case 'yeast':     drawYeast(r, c, true, t); break;
+    case 'goodyeast': drawGoodYeast(r, c); break;
+    case 'virus':     drawVirus(r, c, t); break;
+    case 'mrsa':      drawMRSA(r, c, hp, t); break;
+    case 'phage':     drawPhage(r, c, t); break;
+    case 'bomb':      drawBomb(r, t); break;
+  }
+}
+
+/* Aura behind the body: red danger for pathogens, green halo for beneficials. */
+function drawAura(sp, r, t){
+  if (sp.kind === 'bomb') return;
+  var col, rad;
+  if (sp.kind === 'good'){ col = '61,220,132'; rad = r*1.75; }
+  else if (sp.kind === 'phage'){ col = '94,234,212'; rad = r*1.8; }
+  else { col = '255,60,72'; rad = r*1.6; }
+  var pulse = 1 + Math.sin(t*(sp.kind==='good'?3.2:6)) * 0.07;
+  var g = ctx.createRadialGradient(0,0, r*0.5, 0,0, rad*pulse);
+  g.addColorStop(0, 'rgba(' + col + ',0.42)');
+  g.addColorStop(0.55, 'rgba(' + col + ',0.16)');
+  g.addColorStop(1, 'rgba(' + col + ',0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(0,0, rad*pulse, 0, TAU); ctx.fill();
+  if (sp.kind === 'good'){
+    ctx.strokeStyle = 'rgba(61,220,132,.6)'; ctx.lineWidth = 2;
+    ctx.setLineDash([6,7]); ctx.lineDashOffset = -t*22;
+    ctx.beginPath(); ctx.arc(0,0, r*1.3, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawLabel(m){
+  var f = Math.max(9, m.r * 0.34);
+  ctx.font = '700 ' + f.toFixed(1) + 'px ui-rounded,system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  var y = m.y + m.r * 1.45;
+  ctx.lineWidth = Math.max(2, f*0.34); ctx.strokeStyle = 'rgba(2,10,14,.85)';
+  ctx.strokeText(m.sp.name, m.x, y);
+  ctx.fillStyle = m.sp.kind === 'good' ? '#8ff0b6'
+               : m.sp.kind === 'phage' ? '#9df5e6'
+               : m.sp.kind === 'bomb'  ? '#facc15' : '#ffc0c8';
+  ctx.fillText(m.sp.name, m.x, y);
+}
+
+/* ======================================================================
+   GAME STATE
+   ====================================================================== */
+var elScore  = document.getElementById('score'),
+    elBest   = document.getElementById('best'),
+    elStreak = document.getElementById('streak'),
+    elLives  = document.getElementById('lives'),
+    elFact   = document.getElementById('fact'),
+    elHud    = document.getElementById('hud'),
+    scMenu   = document.getElementById('menu'),
+    scOver   = document.getElementById('over'),
+    elMute   = document.getElementById('mute');
+
+var HS_KEY = 'gramslash.highscore';
+var MUTE_KEY = 'gramslash.muted';
+function loadNum(k){ try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch(e){ return 0; } }
+function saveNum(k,v){ try { localStorage.setItem(k, String(v)); } catch(e){} }
+
+var G = {
+  state: 'menu',      // menu | play | over
+  score: 0, best: loadNum(HS_KEY),
+  lives: 3, time: 0, spawnIn: 0.7,
+  streak: 0, bestStreak: 0, bestCombo: 0,
+  shake: 0, flash: 0, flashCol: '255,60,72',
+  slowmo: 1, freezeTimer: 0
+};
+try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch(e){}
+elMute.textContent = muted ? '🔇' : '🔊';
+
+function renderLives(){
+  var html = '';
+  for (var i=0;i<3;i++) html += '<div class="dish' + (i < G.lives ? '' : ' gone') + '"></div>';
+  elLives.innerHTML = html;
+}
+function setScore(v){
+  G.score = Math.max(0, v);
+  elScore.textContent = G.score;
+  if (G.score > G.best){ G.best = G.score; saveNum(HS_KEY, G.best); }
+  elBest.textContent = 'Best ' + G.best;
+}
+
+var factTimer = 0;
+function showFact(sp, tone, custom){
+  var f = custom || sp.facts[(Math.random()*sp.facts.length)|0];
+  elFact.innerHTML = '<b>' + sp.name + '</b> — ' + f;
+  elFact.className = 'on' + (tone ? ' ' + tone : '');
+  factTimer = 3.2;
+}
+
+/* ---------------------- spawning ---------------------- */
+function difficulty(){
+  return Math.min(1, G.time / 110 + G.score / 2600);
+}
+
+function pickSpecies(){
+  var d = difficulty(), r = Math.random();
+  if (r < 0.028 + 0.075*d) return SP.bomb;
+  r = Math.random();
+  if (G.score > 250 && r < 0.05 + 0.04*d) return SP.mrsa;
+  if (r < 0.085 && (G.lives < 3 || G.score > 400)) return SP.phage;
+  var goodChance = 0.3 + 0.08*d;
+  var pool = [];
+  if (Math.random() < goodChance){
+    pool = [SP.lacto, SP.sacch, SP.rhizo];
+  } else {
+    pool = [SP.staph, SP.ecoli, SP.salmonella, SP.candida, SP.flu];
+  }
+  return pool[(Math.random()*pool.length)|0];
+}
+
+function spawnOne(sp, delay){
+  var m = microbes.get();
+  m.sp = sp;
+  m.dead = false;
+  m.sliced = false;
+  m.hp = sp.hp || 1;
+  m.r = sp.r * S;
+  m.delay = delay || 0;
+  m.t = Math.random() * 10;
+  m.hitFlash = 0;
+  m.inv = 0;            // brief invulnerability so one swipe = one hit on the superbug
+  m.x = W * (0.12 + Math.random() * 0.76);
+  m.y = H + m.r * 1.6;
+  var rise = H * (0.45 + Math.random() * 0.34);
+  m.vy = -Math.sqrt(2 * GRAV * rise);
+  var tFlight = (-m.vy / GRAV) * 2;
+  var tx = W * (0.2 + Math.random() * 0.6);
+  m.vx = (tx - m.x) / tFlight;
+  if (Math.abs(m.vx) > W * 0.5) m.vx = (m.vx > 0 ? 1 : -1) * W * 0.5;
+  m.rot = Math.random() * TAU;
+  m.spin = (Math.random() - 0.5) * 2.6;
+  return m;
+}
+
+var ATTRACT = null;   // filled after SP is built; used by the menu backdrop
+
+function spawnWave(){
+  var d = difficulty();
+  var n = 1 + ((Math.random() < 0.34 + 0.4*d) ? 1 : 0) + ((Math.random() < 0.1 + 0.34*d) ? 1 : 0);
+  var bombUsed = false;
+  for (var i=0;i<n;i++){
+    var sp = pickSpecies();
+    if (sp.kind === 'bomb'){
+      if (bombUsed) sp = SP.staph; else bombUsed = true;
+    }
+    spawnOne(sp, i * (0.05 + Math.random()*0.18));
+  }
+  G.spawnIn = Math.max(0.42, 1.25 - 0.62*d) * (0.78 + Math.random()*0.5);
+}
+
+ATTRACT = [SP.staph, SP.ecoli, SP.salmonella, SP.candida, SP.flu,
+           SP.lacto, SP.sacch, SP.rhizo, SP.phage];
+
+/* ---------------------- effects ---------------------- */
+function splat(x, y, color, n, power){
+  for (var i=0;i<n;i++){
+    var p = parts.get();
+    var a = Math.random() * TAU, sp2 = (0.25 + Math.random()) * power;
+    p.x = x; p.y = y;
+    p.vx = Math.cos(a) * sp2; p.vy = Math.sin(a) * sp2 - power * 0.25;
+    p.r = (2 + Math.random() * 5) * S;
+    p.life = p.max = 0.5 + Math.random() * 0.7;
+    p.c = color; p.dead = false;
+  }
+}
+function popFloat(x, y, text, color, size){
+  var f = floats.get();
+  var sz = (size || 20) * S;
+  ctx.font = '800 ' + sz.toFixed(1) + 'px ui-rounded,system-ui,sans-serif';
+  var half = ctx.measureText(text).width * 0.5 + 10;
+  f.x = Math.max(half, Math.min(W - half, x));
+  f.y = Math.max(sz, Math.min(H - sz, y));
+  // nudge apart from any popup still sitting on the same spot
+  var L = floats.live;
+  for (var i=0;i<L.length;i++){
+    if (L[i] !== f && !L[i].dead && Math.abs(L[i].y - f.y) < sz*1.2 && Math.abs(L[i].x - f.x) < half){
+      f.y = Math.max(sz, f.y - sz * 1.5);
+    }
+  }
+  f.text = text; f.c = color; f.size = sz;
+  f.life = f.max = 0.95; f.dead = false;
+}
+function ring(x, y, color, max){
+  var r = rings.get();
+  r.x = x; r.y = y; r.c = color; r.life = r.max = 0.45; r.rad = max * S; r.dead = false;
+}
+function splitHalves(m, ang){
+  for (var s=-1;s<=1;s+=2){
+    var h = halves.get();
+    h.sp = m.sp; h.r = m.r; h.hp = m.hp;
+    h.x = m.x; h.y = m.y; h.rot = m.rot; h.cut = ang - m.rot; h.side = s;
+    var nx = Math.cos(ang + Math.PI/2) * s, ny = Math.sin(ang + Math.PI/2) * s;
+    h.vx = m.vx * 0.55 + nx * 150 * S;
+    h.vy = m.vy * 0.5 + ny * 150 * S - 60;
+    h.spin = m.spin + s * 2.2;
+    h.life = h.max = 1.25; h.t = m.t; h.dead = false;
+  }
+}
+function shake(v){ G.shake = Math.min(26, G.shake + v); }
+function flash(col, v){ G.flashCol = col; G.flash = Math.max(G.flash, v); }
+
+/* ---------------------- slicing ---------------------- */
+var trail = [];              // {x,y,t}
+var pointerDown = false, swipeKills = 0, lastSwipeSfx = 0;
+
+function segCircle(x1,y1,x2,y2,cx,cy,r){
+  var dx = x2-x1, dy = y2-y1;
+  var len2 = dx*dx + dy*dy;
+  var t = len2 ? ((cx-x1)*dx + (cy-y1)*dy) / len2 : 0;
+  t = t < 0 ? 0 : (t > 1 ? 1 : t);
+  var px = x1 + dx*t - cx, py = y1 + dy*t - cy;
+  return (px*px + py*py) <= r*r;
+}
+
+function sliceMicrobe(m, ang){
+  var sp = m.sp;
+  if (sp.kind === 'bomb'){
+    m.dead = true;
+    splat(m.x, m.y, '#facc15', 34, 460*S);
+    ring(m.x, m.y, '255,204,21', 260);
+    shake(24); flash('255,204,21', 0.85);
+    SFX.bomb(); showFact(sp, 'bad');
+    gameOver('You slashed the biohazard bag. Everything is contaminated.');
+    return;
+  }
+  if (sp.kind === 'phage'){
+    m.dead = true; m.sliced = true;
+    splitHalves(m, ang);
+    splat(m.x, m.y, '#5eead4', 20, 380*S);
+    ring(m.x, m.y, '94,234,212', Math.max(W,H));
+    flash('94,234,212', 0.5); SFX.phage(); showFact(sp, 'good');
+    var gained = 0, L = microbes.live;
+    for (var i=0;i<L.length;i++){
+      var o = L[i];
+      if (o.dead || o.sliced || o.delay > 0) continue;
+      if (o.sp.kind === 'path'){
+        o.dead = true; o.sliced = true;
+        splitHalves(o, Math.random()*TAU);
+        splat(o.x, o.y, STAIN[o.sp.gram].splat, 10, 280*S);
+        gained += o.sp.pts;
+      }
+    }
+    gained += sp.pts;
+    setScore(G.score + gained);
+    popFloat(m.x, m.y, 'LYSIS! +' + gained, '#5eead4', 26);
+    return;
+  }
+  if (sp.kind === 'good'){
+    m.dead = true; m.sliced = true;
+    splitHalves(m, ang);
+    splat(m.x, m.y, '#3ddc84', 22, 340*S);
+    shake(12); flash('255,60,72', 0.45);
+    SFX.good();
+    G.streak = 0;
+    setScore(G.score - 25);
+    popFloat(m.x, m.y, 'GOOD FLORA! -25', '#ff8a94', 22);
+    showFact(sp, 'bad', 'you nuked your good flora! ' + sp.facts[0]);
+    loseLife('You wiped out your own microbiome.');
+    return;
+  }
+  // pathogen
+  if (m.hp > 1){
+    m.hp--; m.hitFlash = 0.18; m.inv = 0.34;
+    m.vy -= 190 * S; m.vx *= 0.6;
+    ring(m.x, m.y, '255,216,107', 120);
+    splat(m.x, m.y, '#ffd86b', 8, 260*S);
+    shake(5); SFX.tough();
+    popFloat(m.x, m.y - m.r, 'RESISTANT x' + m.hp, '#ffd86b', 17);
+    if (m.hp === 2) showFact(sp, 'bad');
+    return;
+  }
+  m.dead = true; m.sliced = true;
+  swipeKills++;
+  if (swipeKills > G.bestCombo) G.bestCombo = swipeKills;
+  G.streak++;
+  if (G.streak > G.bestStreak) G.bestStreak = G.streak;
+
+  splitHalves(m, ang);
+  splat(m.x, m.y, STAIN[sp.gram].splat, 16, 360*S);
+  var gain = sp.pts * swipeKills;
+  setScore(G.score + gain);
+  SFX.kill(swipeKills);
+  shake(swipeKills > 1 ? 7 : 3.5);
+
+  if (swipeKills > 1){
+    popFloat(m.x, m.y, 'x' + swipeKills + ' COMBO  +' + gain, '#ffd86b', 24);
+    ring(m.x, m.y, '255,216,107', 150);
+  } else {
+    popFloat(m.x, m.y, '+' + gain, '#ffffff', 20);
+  }
+  if (G.streak > 0 && G.streak % 10 === 0){
+    setScore(G.score + 75);
+    popFloat(W/2, H*0.34, 'ASEPTIC STREAK x' + G.streak + '  +75', '#5eead4', 26);
+    SFX.bonus();
+  }
+  // a clean 15-slice run re-grows one plate
+  if (G.streak > 0 && G.streak % 15 === 0 && G.lives < 3){
+    G.lives++; renderLives();
+    popFloat(W/2, H*0.42, 'STERILE FIELD  +1 PLATE', '#3ddc84', 24);
+    ring(W/2, H*0.42, '61,220,132', 220);
+    SFX.bonus();
+  }
+  elStreak.textContent = G.streak > 2 ? 'sterile streak ' + G.streak : '';
+  showFact(sp, 'bad');
+}
+
+function cut(x1, y1, x2, y2){
+  if (G.state !== 'play') return;
+  var ang = Math.atan2(y2-y1, x2-x1);
+  var L = microbes.live;
+  for (var i=0;i<L.length;i++){
+    var m = L[i];
+    if (m.dead || m.sliced || m.delay > 0 || m.inv > 0) continue;
+    if (segCircle(x1,y1,x2,y2, m.x, m.y, m.r * 1.02)) sliceMicrobe(m, ang);
+    if (G.state !== 'play') return;
+  }
+}
+
+/* ---------------------- lives / run end ---------------------- */
+function loseLife(reason){
+  G.lives--;
+  renderLives();
+  if (G.lives <= 0) gameOver(reason);
+}
+
+function gameOver(reason){
+  if (G.state !== 'play') return;
+  G.state = 'over';
+  G.lives = 0; renderLives();
+  shake(18); flash('255,60,72', 0.5);
+  SFX.over();
+  document.getElementById('greason').textContent = reason;
+  document.getElementById('gscore').textContent  = G.score;
+  document.getElementById('gbest').textContent   = G.best;
+  document.getElementById('gcombo').textContent  = 'x' + Math.max(1, G.bestCombo);
+  document.getElementById('gstreak').textContent = G.bestStreak;
+  setTimeout(function(){
+    scOver.classList.add('on');
+    elHud.classList.remove('on');
+  }, 700);
+}
+
+function startGame(){
+  audioInit(); SFX.start();
+  microbes.live.length = 0; halves.live.length = 0;
+  parts.live.length = 0; floats.live.length = 0; rings.live.length = 0;
+  G.state = 'play'; G.lives = 3; G.time = 0; G.spawnIn = 0.55;
+  G.streak = 0; G.bestStreak = 0; G.bestCombo = 0;
+  G.shake = 0; G.flash = 0;
+  swipeKills = 0; trail.length = 0;
+  setScore(0); renderLives();
+  elStreak.textContent = '';
+  scMenu.classList.remove('on'); scOver.classList.remove('on');
+  elHud.classList.add('on'); elMute.classList.remove('hide');
+  elFact.className = '';
+}
+
+function toMenu(){
+  G.state = 'menu';
+  microbes.live.length = 0; halves.live.length = 0;
+  scOver.classList.remove('on'); scMenu.classList.add('on');
+  elHud.classList.remove('on'); elMute.classList.add('hide');
+  elFact.className = '';
+}
+
+document.getElementById('play').addEventListener('click', startGame);
+document.getElementById('again').addEventListener('click', startGame);
+document.getElementById('tomenu').addEventListener('click', toMenu);
+elMute.addEventListener('click', function(){
+  muted = !muted;
+  elMute.textContent = muted ? '🔇' : '🔊';
+  try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch(e){}
+});
+
+/* ---------------------- pointer input ---------------------- */
+function localPos(e){
+  var r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+function pushTrail(x, y){
+  var last = trail.length ? trail[trail.length-1] : null;
+  if (last){
+    var dx = x - last.x, dy = y - last.y;
+    if (dx*dx + dy*dy > 4){
+      cut(last.x, last.y, x, y);
+      var now = performance.now();
+      if (Math.sqrt(dx*dx+dy*dy) > 26 && now - lastSwipeSfx > 130){
+        lastSwipeSfx = now; SFX.swipe();
+      }
+    }
+  }
+  trail.push({ x:x, y:y, t: 0 });
+  if (trail.length > 26) trail.shift();
+}
+function down(e){
+  audioInit();
+  pointerDown = true; swipeKills = 0;
+  trail.length = 0;
+  var p = localPos(e); trail.push({x:p.x, y:p.y, t:0});
+}
+function move(e){
+  if (!pointerDown) return;
+  var p = localPos(e);
+  pushTrail(p.x, p.y);
+}
+function up(){ pointerDown = false; swipeKills = 0; }
+
+if (window.PointerEvent){
+  canvas.addEventListener('pointerdown', function(e){ e.preventDefault(); down(e); }, {passive:false});
+  canvas.addEventListener('pointermove', function(e){ e.preventDefault(); move(e); }, {passive:false});
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+} else {
+  canvas.addEventListener('touchstart', function(e){ e.preventDefault(); down(e.changedTouches[0]); }, {passive:false});
+  canvas.addEventListener('touchmove', function(e){ e.preventDefault();
+    for (var i=0;i<e.changedTouches.length;i++) move(e.changedTouches[i]); }, {passive:false});
+  window.addEventListener('touchend', up);
+  window.addEventListener('touchcancel', up);
+  canvas.addEventListener('mousedown', function(e){ e.preventDefault(); down(e); });
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+}
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('touchmove', function(e){ e.preventDefault(); }, {passive:false});
+
+/* ======================================================================
+   UPDATE
+   ====================================================================== */
+function update(dt){
+  G.shake *= Math.pow(0.0015, dt);
+  if (G.shake < 0.2) G.shake = 0;
+  G.flash = Math.max(0, G.flash - dt * 1.9);
+
+  if (factTimer > 0){
+    factTimer -= dt;
+    if (factTimer <= 0) elFact.className = '';
+  }
+
+  // trail ageing
+  for (var i=trail.length-1; i>=0; i--){
+    trail[i].t += dt;
+    if (trail[i].t > 0.26) trail.splice(i,1);
+  }
+
+  if (G.state === 'play'){
+    G.time += dt;
+    G.spawnIn -= dt;
+    if (G.spawnIn <= 0) spawnWave();
+  } else {
+    // attract mode: microbes keep drifting behind the menu, but cannot be cut
+    G.spawnIn -= dt;
+    if (G.spawnIn <= 0){
+      spawnOne(ATTRACT[(Math.random()*ATTRACT.length)|0], 0);
+      G.spawnIn = 0.8 + Math.random() * 0.9;
+    }
+  }
+
+  // microbes
+  var L = microbes.live;
+  for (var i2=0; i2<L.length; i2++){
+    var m = L[i2];
+    if (m.dead) continue;
+    if (m.delay > 0){ m.delay -= dt; continue; }
+    m.t += dt;
+    if (m.hitFlash > 0) m.hitFlash -= dt;
+    if (m.inv > 0) m.inv -= dt;
+    m.vy += GRAV * dt;
+    m.x += m.vx * dt;
+    m.y += m.vy * dt;
+    m.rot += m.spin * dt;
+    if (m.x < m.r*0.4 && m.vx < 0) m.vx = -m.vx;              // soft walls
+    if (m.x > W - m.r*0.4 && m.vx > 0) m.vx = -m.vx;
+    if (m.y - m.r > H + 40 && m.vy > 0){
+      m.dead = true;
+      if (G.state === 'play' && m.sp.kind === 'path'){
+        G.streak = 0;
+        elStreak.textContent = '';
+        SFX.miss(); flash('255,60,72', 0.3); shake(6);
+        popFloat(Math.min(W-60, Math.max(60, m.x)), H - 70*S, 'ESCAPED', '#ff8a94', 20);
+        loseLife(m.sp.name + ' escaped the plate. The ward is contaminated.');
+      }
+    }
+  }
+  microbes.sweep();
+
+  // sliced halves
+  var Hh = halves.live;
+  for (var i3=0; i3<Hh.length; i3++){
+    var h = Hh[i3];
+    h.vy += GRAV * 0.85 * dt;
+    h.x += h.vx * dt; h.y += h.vy * dt;
+    h.rot += h.spin * dt;
+    h.life -= dt;
+    if (h.life <= 0 || h.y - h.r > H + 80) h.dead = true;
+  }
+  halves.sweep();
+
+  // splatter
+  var P = parts.live;
+  for (var i4=0; i4<P.length; i4++){
+    var p = P[i4];
+    p.vy += GRAV * 0.55 * dt;
+    p.vx *= Math.pow(0.15, dt);
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0 || p.y > H + 30) p.dead = true;
+  }
+  parts.sweep();
+
+  var F = floats.live;
+  for (var i5=0; i5<F.length; i5++){
+    var f = F[i5];
+    f.y -= 46 * dt; f.life -= dt;
+    if (f.life <= 0) f.dead = true;
+  }
+  floats.sweep();
+
+  var R = rings.live;
+  for (var i6=0; i6<R.length; i6++){
+    var rr = R[i6];
+    rr.life -= dt;
+    if (rr.life <= 0) rr.dead = true;
+  }
+  rings.sweep();
+}
+
+/* ======================================================================
+   RENDER
+   ====================================================================== */
+var bgGrad = null, bgW = 0, bgH = 0;
+function background(){
+  if (!bgGrad || bgW !== W || bgH !== H){
+    bgGrad = ctx.createRadialGradient(W*0.5, H*0.42, Math.min(W,H)*0.08, W*0.5, H*0.55, Math.max(W,H)*0.82);
+    bgGrad.addColorStop(0, '#12333f');
+    bgGrad.addColorStop(0.55, '#0a1e29');
+    bgGrad.addColorStop(1, '#050d13');
+    bgW = W; bgH = H;
+  }
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(-40, -40, W+80, H+80);
+  // faint agar colonies
+  ctx.globalAlpha = 0.05; ctx.fillStyle = '#7fe3c0';
+  for (var i=0;i<7;i++){
+    var a = i*2.3, x = (Math.sin(a)*0.5+0.5)*W, y = (Math.cos(a*1.7)*0.5+0.5)*H;
+    ctx.beginPath(); ctx.arc(x, y, (18 + (i%4)*16) * S, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHalves(){
+  var Hh = halves.live;
+  for (var i=0;i<Hh.length;i++){
+    var h = Hh[i];
+    var a = Math.min(1, h.life / (h.max*0.55));
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(h.x, h.y);
+    ctx.rotate(h.cut + h.rot);
+    var R = h.r * 2.6;
+    ctx.beginPath();
+    ctx.rect(-R, h.side < 0 ? -R : 0, R*2, R);
+    ctx.clip();
+    ctx.rotate(-(h.cut + h.rot));
+    ctx.rotate(h.rot);
+    drawBody(h.sp, h.r, h.hp, h.t);
+    ctx.restore();
+    // cut face glow
+    ctx.save();
+    ctx.globalAlpha = a * 0.75;
+    ctx.translate(h.x, h.y); ctx.rotate(h.cut + h.rot);
+    ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-h.r*0.95, 0); ctx.lineTo(h.r*0.95, 0); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawMicrobes(){
+  var L = microbes.live;
+  for (var i=0;i<L.length;i++){
+    var m = L[i];
+    if (m.dead || m.delay > 0) continue;
+    if (m.y < -m.r*3 || m.y > H + m.r*3) continue;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    drawAura(m.sp, m.r, m.t);
+    ctx.rotate(m.rot);
+    drawBody(m.sp, m.r, m.hp, m.t);
+    if (m.hitFlash > 0){
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.min(1, m.hitFlash * 4);
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.beginPath(); ctx.arc(0, 0, m.r, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.restore();
+    drawLabel(m);
+  }
+}
+
+function drawParticles(){
+  var P = parts.live;
+  for (var i=0;i<P.length;i++){
+    var p = P[i];
+    var a = p.life / p.max;
+    ctx.globalAlpha = a < 1 ? a : 1;
+    ctx.fillStyle = p.c;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.r * (0.5 + a*0.7), p.r * (0.5 + a*0.7) * 0.8, 0, 0, TAU);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawRings(){
+  var R = rings.live;
+  for (var i=0;i<R.length;i++){
+    var r = R[i];
+    var k = 1 - r.life / r.max;
+    ctx.strokeStyle = 'rgba(' + r.c + ',' + (1-k).toFixed(3) + ')';
+    ctx.lineWidth = Math.max(1, 9 * (1-k) * S);
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.rad * k, 0, TAU); ctx.stroke();
+  }
+}
+
+function drawFloats(){
+  var F = floats.live;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (var i=0;i<F.length;i++){
+    var f = F[i];
+    var a = Math.min(1, f.life / (f.max * 0.55));
+    ctx.globalAlpha = a;
+    ctx.font = '800 ' + f.size.toFixed(1) + 'px ui-rounded,system-ui,sans-serif';
+    ctx.lineWidth = f.size * 0.3; ctx.strokeStyle = 'rgba(2,10,14,.8)';
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.c;
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawTrail(){
+  if (trail.length < 2) return;
+  ctx.globalCompositeOperation = 'lighter';
+  for (var pass=0; pass<2; pass++){
+    for (var i=1;i<trail.length;i++){
+      var a = trail[i], b = trail[i-1];
+      var age = 1 - a.t / 0.26;
+      if (age <= 0) continue;
+      var taper = i / trail.length;
+      var w = (pass ? 3.5 : 13) * age * (0.35 + taper*0.85) * S;
+      ctx.strokeStyle = pass ? 'rgba(255,255,255,' + (0.85*age).toFixed(3) + ')'
+                            : 'rgba(110,231,255,' + (0.3*age).toFixed(3) + ')';
+      ctx.lineWidth = w;
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(a.x, a.y); ctx.stroke();
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function render(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  var sx = 0, sy = 0;
+  if (G.shake > 0.2){
+    sx = (Math.random()-0.5) * G.shake;
+    sy = (Math.random()-0.5) * G.shake;
+    ctx.translate(sx, sy);
+  }
+  background();
+  drawRings();
+  drawHalves();
+  drawMicrobes();
+  drawParticles();
+  drawTrail();
+  drawFloats();
+  if (G.flash > 0.001){
+    ctx.fillStyle = 'rgba(' + G.flashCol + ',' + (G.flash * 0.42).toFixed(3) + ')';
+    ctx.fillRect(-40,-40,W+80,H+80);
+  }
+}
+
+/* ======================================================================
+   MAIN LOOP — delta-timed, clamped so a backgrounded tab cannot warp physics
+   ====================================================================== */
+var last = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  if (!last) last = now;
+  var dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.05) dt = 0.05;          // clamp to ~20fps worth of movement
+  update(dt);
+  render();
+}
+requestAnimationFrame(frame);
+
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden){
+    pointerDown = false; trail.length = 0;
+    if (AC && AC.state === 'running') AC.suspend();
+  } else {
+    last = 0;
+    if (AC && AC.state === 'suspended' && !muted) AC.resume();
+  }
+});
+
+renderLives();
+setScore(0);
+elBest.textContent = 'Best ' + G.best;
+
+/* ---------------------- PWA ---------------------- */
+if ('serviceWorker' in navigator && location.protocol !== 'file:'){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+})();
+</script>
+</body>
+</html>
